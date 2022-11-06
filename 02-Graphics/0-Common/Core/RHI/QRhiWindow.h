@@ -26,9 +26,9 @@ protected:
 protected:
 	QRhi::Implementation mBackend;
 	std::shared_ptr<QRhi> mRhi;
-	QRhiSPtr<QRhiSwapChain> mSwapChain;
-	QRhiSPtr<QRhiRenderBuffer> mDepthStencilFrameBuffer;
-	QRhiSPtr<QRhiRenderPassDescriptor> mRenderPassDesciptor;
+	QRhiScopedPointer<QRhiSwapChain> mSwapChain;
+	QRhiScopedPointer<QRhiRenderBuffer> mDepthStencilFrameBuffer;
+	QRhiScopedPointer<QRhiRenderPassDescriptor> mRenderPassDesciptor;
 	std::shared_ptr<QOffscreenSurface> mFallbackSurface;
 	QElapsedTimer mTimer;
 	int mFrameCount = 0;

@@ -14,7 +14,6 @@ QRhiWindow::QRhiWindow(QRhi::Implementation backend)
 	switch (backend) {
 	case QRhi::OpenGLES2:
 		setSurfaceType(OpenGLSurface);
-		setFormat(QRhiGles2InitParams::adjustedFormat());
 		break;
 	case QRhi::Vulkan:
 		setSurfaceType(VulkanSurface);

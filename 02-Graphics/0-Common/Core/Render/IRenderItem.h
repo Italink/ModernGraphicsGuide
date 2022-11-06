@@ -13,8 +13,8 @@ public:
 	virtual void updateResourcePrePass(QRhiResourceUpdateBatch* batch) {}
 	virtual void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
 
-	QRhiSignal bNeedRecreateResource;
-	QRhiSignal bNeedRecreatePipeline;
+	QDirtySignal bNeedRecreateResource;
+	QDirtySignal bNeedRecreatePipeline;
 protected:
 	ISceneRenderPass* mScreenRenderPass = nullptr;
 };

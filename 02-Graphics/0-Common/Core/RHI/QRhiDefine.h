@@ -4,34 +4,33 @@
 #include <memory>
 #include "private/qrhi_p.h"
 
-template<typename _Ty>
-class QRhiSPtr :public std::shared_ptr<_Ty> {
-public:
-	void reset(_Ty* res) noexcept {
-		if (res != nullptr) {
-			std::shared_ptr<_Ty>::reset(res, [](_Ty* res) {
-				res->destroy();
-			});
-		}
-		else {
-			std::shared_ptr<_Ty>::reset();
-		}
+template <typename T>
+struct QRhiScopedPointerDeleter {
+	static inline void cleanup(T* pointer) noexcept {
+		if (pointer)
+			pointer->destroy();
+	}
+	void operator()(T* pointer) const noexcept {
+		cleanup(pointer);
 	}
 };
 
-class QRhiSignal {
+template<typename T>
+using QRhiScopedPointer = QScopedPointer<T, QRhiScopedPointerDeleter<T>>;
+
+class QDirtySignal {
 public:
-	QRhiSignal(bool var = false) :bSignal(var) {};
-	void active() {
-		bSignal = true;
+	QDirtySignal(bool var = false){};
+	void mark() {
+		bDirty = true;
 	}
-	bool receive() {
-		bool var = bSignal;
-		bSignal = false;
+	bool handle() {
+		bool var = bDirty;
+		bDirty = false;
 		return var;
 	}
 private:
-	bool bSignal = false;
+	bool bDirty = false;
 };
 
 
