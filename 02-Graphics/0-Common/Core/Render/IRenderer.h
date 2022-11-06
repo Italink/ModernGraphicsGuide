@@ -2,7 +2,7 @@
 #define IRenderer_h__
 
 #include "QFrameGraph.h"
-#include "RHI/QRhiDefine.h"
+#include "RHI/QRhiToolkit.h"
 
 class IRenderer: public QObject {
 	Q_OBJECT

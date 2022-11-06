@@ -17,4 +17,5 @@ target_link_libraries(Core PUBLIC
     Qt::GuiPrivate
     Qt::Widgets
     Qt::WidgetsPrivate
+    Qt::ShaderToolsPrivate
 )

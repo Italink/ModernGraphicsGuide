@@ -1,7 +1,7 @@
 ﻿#ifndef IRenderPassBase_h__
 #define IRenderPassBase_h__
 
-#include "RHI/QRhiDefine.h"
+#include "RHI/QRhiToolkit.h"
 
 class IRenderer;
 
@@ -14,6 +14,7 @@ public:
 	}
 
 	virtual void compile() = 0;
+
 	virtual void execute(QRhiCommandBuffer* cmdBuffer) = 0;
 
 	virtual QRhiTexture* getOutputTexture(int slot = 0) {

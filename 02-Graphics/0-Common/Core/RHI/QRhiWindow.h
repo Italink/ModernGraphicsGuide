@@ -2,43 +2,53 @@
 #define QRhiWindow_h__
 
 #include <QWindow>
+
+#ifndef QT_NO_OPENGL
 #include <QOffscreenSurface>
-#include "QRhiDefine.h"
+#endif
+
+#include "QRhiToolkit.h"
 
 class QRhiWindow :public QWindow {
 public:
-	QRhiWindow(QRhi::Implementation backend);
-	void waitExposed();
-	int getFPS() const { return mFPS; }
-	bool hasClosed() const { return mHasClosed; }
-	QRhiSwapChain* getSwapChain() { return mSwapChain.get(); };
-
-	virtual void customInitEvent() {}
-	virtual void customRenderEvent(QRhiSwapChain *swapchain) {}
-	virtual void customResizeEvent() {}
+	struct InitParams {
+		QRhi::Implementation backend = QRhi::Vulkan;
+		QRhi::Flags rhiFlags;
+		QRhiSwapChain::Flags swapChainFlags;
+		QRhi::BeginFrameFlags beginFrameFlags;
+		QRhi::EndFrameFlags endFrameFlags;
+		int sampleCount = 1;
+		int framesUntilTdr = -1;
+		bool enableDebugLayer = true;
+		bool printFPS = true;
+	};
+	QRhiWindow(QRhiWindow::InitParams inInitParmas);
 private:
-	void initInternal();
-	void renderInternal();
-	void resizeSwapChain();
+	void initPrivate();
+	void renderPrivate();
 protected:
+	virtual void onRenderTick() {}
 	void exposeEvent(QExposeEvent*) override;
 	bool event(QEvent*) override;
-protected:
-	QRhi::Implementation mBackend;
-	std::shared_ptr<QRhi> mRhi;
-	QRhiScopedPointer<QRhiSwapChain> mSwapChain;
-	QRhiScopedPointer<QRhiRenderBuffer> mDepthStencilFrameBuffer;
-	QRhiScopedPointer<QRhiRenderPassDescriptor> mRenderPassDesciptor;
-	std::shared_ptr<QOffscreenSurface> mFallbackSurface;
-	QElapsedTimer mTimer;
-	int mFrameCount = 0;
-	int mFPS = 0;
+private:
+	InitParams mInitParams;
 
 	bool mRunning = false;
 	bool mNotExposed = false;
 	bool mNewlyExposed = false;
 	bool mHasSwapChain = false;
-	bool mHasClosed = false;
+
+	QElapsedTimer mFPSTimer;
+	int mFrameCount;
+protected:
+	QScopedPointer<QRhi> mRhi;
+	QScopedPointer<QRhiSwapChain> mSwapChain;
+	QScopedPointer<QRhiRenderBuffer> mDSBuffer  ;
+	QScopedPointer<QRhiRenderPassDescriptor> mSwapChainPassDesc;
+
+#ifndef QT_NO_OPENGL
+	QOffscreenSurface* mFallbackSurface = nullptr;
+#endif
 };
 
 #endif // QRhiWindow_h__

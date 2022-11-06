@@ -6,7 +6,7 @@
 
 #include <QWidget>
 #include <QtGui/private/qrhi_p.h>
-#include "QRhiDefine.h"
+#include "QRhiToolkit.h"
 
 class QRhiWidgetPrivate;
 
