@@ -70,6 +70,5 @@ int main(int argc, char **argv)
 
 	RunQtShaderTool();
 
-	QShader vs = 
     return app.exec();
 }

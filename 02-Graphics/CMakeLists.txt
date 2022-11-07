@@ -18,20 +18,26 @@ macro(get_all_targets_internal TARGETS DIR)
 endmacro()
 
 function(initlize_common_libaray)
+    set(COMMON_TARGETS)
     add_subdirectory(0-Common/Core)
-    get_all_targets(COMMON_TARGETS)
-    foreach(TARGET_ITEM ${COMMON_TARGETS})
+    get_all_targets(COMMON_LOCAL_TARGETS)
+    list(APPEND COMMON_TARGETS ${COMMON_LOCAL_TARGETS})
+    foreach(TARGET_ITEM ${COMMON_LOCAL_TARGETS})
         set_target_properties(${TARGET_ITEM} PROPERTIES FOLDER "0-Common")
     endforeach()
+    list(APPEND COMMON_TARGETS)
+    set(COMMON_TARGETS ${COMMON_TARGETS} PARENT_SCOPE)
 endfunction()
 
 function(add_example EXAMPLE_PATH)
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_PATH} NAME)
     file(GLOB_RECURSE PROJECT_SOURCE FILES ${EXAMPLE_PATH}/*.h  ${EXAMPLE_PATH}/*.cpp ${EXAMPLE_PATH}/*.qrc)
+
     add_executable(${EXAMPLE_NAME} 
         ${PROJECT_SOURCE}
     )
-    target_link_libraries(${EXAMPLE_NAME} PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+    target_compile_definitions(${EXAMPLE_NAME} PRIVATE PROJECT_PATH="${EXAMPLE_PATH}")
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE ${COMMON_TARGETS})
 endfunction()
 
 function(add_example_dir DIR_PATH)
@@ -52,6 +58,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 initlize_common_libaray()
 
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOMOC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
