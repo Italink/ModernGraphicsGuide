@@ -23,7 +23,7 @@ QShader newShaderFromCode(QShader::Stage stage, const char* code) {
 	return shader;
 }
 
-QShader createShaderFromFile(QShader::Stage stage, const char* filename) {
+QShader newShaderFromFile(QShader::Stage stage, const char* filename) {
 	QFile file(filename);
 	if (file.open(QIODevice::ReadOnly))
 		return newShaderFromCode(stage,file.readAll().constData());
@@ -67,8 +67,6 @@ int main(int argc, char **argv)
 {
 	QApplication app(argc, argv);
 	QDir::setCurrent(PROJECT_PATH);
-
 	RunQtShaderTool();
-
     return app.exec();
 }
