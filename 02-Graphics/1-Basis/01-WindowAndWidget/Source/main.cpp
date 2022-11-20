@@ -10,22 +10,18 @@ int main(int argc, char **argv)
     qputenv("QSG_INFO", "1");
     QApplication app(argc, argv);
 
-
     QRhiWindow::InitParams initParams;
-    ExampleRhiWindow* window = new ExampleRhiWindow(initParams);
-    window->setTitle("01-RhiWindow");
-    window->resize({ 400,400 });
-    window->show();
+    ExampleRhiWindow window(initParams);
+	window.setTitle("01-RhiWindow");
+	window.resize({ 400,400 });
+	window.show();
 
-	ExampleRhiWidget* widget = new ExampleRhiWidget;
-	widget->setWindowTitle("01-RhiWidget");
-	widget->setApi(QRhiWidget::Vulkan);
-	widget->resize({ 400,400 });
-	widget->show();
+	ExampleRhiWidget widget;
+	widget.setWindowTitle("01-RhiWidget");
+	widget.setApi(QRhiWidget::Vulkan);
+	widget.resize({ 400,400 });
+	widget.show();
 
     app.exec();
-
-    delete widget;
-    delete window;
     return 0;
 }

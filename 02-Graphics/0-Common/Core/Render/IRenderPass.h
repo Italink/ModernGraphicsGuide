@@ -1,7 +1,7 @@
 ﻿#ifndef IRenderPassBase_h__
 #define IRenderPassBase_h__
 
-#include "RHI/QRhiToolkit.h"
+#include "RHI/QRhiEx.h"
 
 class IRenderer;
 

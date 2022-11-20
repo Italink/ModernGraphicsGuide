@@ -3,11 +3,7 @@
 
 #include <QWindow>
 
-#ifndef QT_NO_OPENGL
-#include <QOffscreenSurface>
-#endif
-
-#include "QRhiToolkit.h"
+#include "QRhiEx.h"
 
 class QRhiWindow :public QWindow {
 public:
@@ -18,8 +14,6 @@ public:
 		QRhi::BeginFrameFlags beginFrameFlags;
 		QRhi::EndFrameFlags endFrameFlags;
 		int sampleCount = 1;
-		int framesUntilTdr = -1;
-		bool enableDebugLayer = true;
 		bool printFPS = true;
 	};
 	QRhiWindow(QRhiWindow::InitParams inInitParmas);
@@ -41,14 +35,10 @@ private:
 	QElapsedTimer mFPSTimer;
 	int mFrameCount;
 protected:
-	QScopedPointer<QRhi> mRhi;
+	QSharedPointer<QRhiEx> mRhi;
 	QScopedPointer<QRhiSwapChain> mSwapChain;
 	QScopedPointer<QRhiRenderBuffer> mDSBuffer  ;
 	QScopedPointer<QRhiRenderPassDescriptor> mSwapChainPassDesc;
-
-#ifndef QT_NO_OPENGL
-	QOffscreenSurface* mFallbackSurface = nullptr;
-#endif
 };
 
 #endif // QRhiWindow_h__

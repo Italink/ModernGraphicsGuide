@@ -1,26 +1,53 @@
-#ifndef MyFirstTriangleWindow_h__
-#define MyFirstTriangleWindow_h__
+#ifndef MyFirstTextureWindow_h__
+#define MyFirstTextureWindow_h__
 
 #include "RHI/QRhiWindow.h"
 
-static float vertexData[] = { 
-	//position(xyz)				color(rgba)
-	 0.0f,   0.5f,   0.0f,      1.0f, 0.0f, 0.0f, 1.0f,
-	-0.5f,  -0.5f,   0.0f,      0.0f, 1.0f, 0.0f, 1.0f,
-	 0.5f,  -0.5f,   0.0f,      0.0f, 0.0f, 1.0f, 1.0f
+static float VertexData[] = { 
+	//position(xy)		texture coord(uv)
+	 0.5f,   0.5f,		1.0f,  1.0f,
+	-0.5f,   0.5f,		0.0f,  1.0f,
+	 0.5f,  -0.5f,		1.0f,  0.0f,
+	-0.5f,  -0.5f,		0.0f,  0.0f
 };
 
-class MyFirstTriangleWindow : public QRhiWindow {
+class MyFirstTextureWindow : public QRhiWindow {
 public:
-	MyFirstTriangleWindow(QRhiWindow::InitParams inInitParams):QRhiWindow(inInitParams) {
+	MyFirstTextureWindow(QRhiWindow::InitParams inInitParams):QRhiWindow(inInitParams) {
 		bNeedInit.mark();
 	}
+private:
+	QRhiEx::DirtySignal bNeedInit;
+	QRhiEx::DirtySignal bNeedSubmit;
+
+	QImage mImage;
+	QScopedPointer<QRhiBuffer> mVertexBuffer;
+	QScopedPointer<QRhiTexture> mTexture;
+	QScopedPointer<QRhiSampler> mSapmler;
+	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
+	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 protected:
 	void initRhiResource() {
-		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(vertexData)));
+		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 
+		mTexture.reset(mRhi->newTexture(QRhiTexture::RGBA8, mImage.size()));
+		mTexture->create();
+
+		mSapmler.reset(mRhi->newSampler(
+			QRhiSampler::Filter::Linear,
+			QRhiSampler::Filter::Linear,
+			QRhiSampler::Filter::Nearest,
+			QRhiSampler::AddressMode::Repeat,
+			QRhiSampler::AddressMode::Repeat,
+			QRhiSampler::AddressMode::Repeat
+		));
+		mSapmler->create();
+
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());
+		mShaderBindings->setBindings({
+			QRhiShaderResourceBinding::texture(0, QRhiShaderResourceBinding::FragmentStage, mTexture.get())
+		});
 		mShaderBindings->create();
 
 		mPipeline.reset(mRhi->newGraphicsPipeline());
@@ -35,30 +62,29 @@ protected:
 		mPipeline->setDepthOp(QRhiGraphicsPipeline::Always);
 		mPipeline->setDepthWrite(false);
 
-		QShader vs = QRhiToolkit::createShaderFromCode(QShader::VertexStage,R"(#version 440
+		QShader vs = QRhiEx::newShaderFromCode(QShader::VertexStage,R"(#version 440
+layout(location = 0) in vec2 inPosition;
+layout(location = 1) in vec2 inUV;
 
-layout(location = 0) in vec3 position;
-layout(location = 1) in vec4 color;
-
-layout(location = 0) out vec4 v_color;
+layout(location = 0) out vec2 outUV;
 
 out gl_PerVertex { vec4 gl_Position; };
 
 void main()
 {
-    v_color = color;
-    gl_Position = vec4(position,1.0f);
+    outUV = inUV;
+    gl_Position = vec4(inPosition,0.0f,1.0f);
 }
 )");
 		Q_ASSERT(vs.isValid());
 
-		QShader fs = QRhiToolkit::createShaderFromCode(QShader::FragmentStage, R"(#version 440
-layout(location = 0) in vec4 v_color;
-layout(location = 0) out vec4 fragColor;
-
+		QShader fs = QRhiEx::newShaderFromCode(QShader::FragmentStage, R"(#version 440
+layout(location = 0) in vec4 inUV;
+layout(location = 0) out vec4 outFragColor;
+layout(binding = 1) uniform sampler2D inTexture;
 void main()
 {
-    fragColor = v_color;
+    outFragColor = texture(inTexture,inUV);
 }
 )");
 		Q_ASSERT(fs.isValid());
@@ -70,11 +96,11 @@ void main()
 
 		QRhiVertexInputLayout inputLayout;
 		inputLayout.setBindings({
-			{ 7 * sizeof(float) }
+			{ 4 * sizeof(float) }
 			});
 		inputLayout.setAttributes({
-			{ 0, 0, QRhiVertexInputAttribute::Float3, 0 },
-			{ 0, 1, QRhiVertexInputAttribute::Float4, 3 * sizeof(float) }
+			{ 0, 0, QRhiVertexInputAttribute::Float2, 0 },
+			{ 0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float) }
 			});
 
 		mPipeline->setVertexInputLayout(inputLayout);
@@ -86,7 +112,8 @@ void main()
 	}
 
 	void submitRhiData(QRhiResourceUpdateBatch* resourceUpdates) {
-		resourceUpdates->uploadStaticBuffer(mVertexBuffer.get(), vertexData);
+		resourceUpdates->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
+		resourceUpdates->uploadTexture(mTexture.get(), mImage);
 	}
 
 	virtual void onRenderTick() override {
@@ -96,6 +123,7 @@ void main()
 		if (bNeedInit.handle()) {
 			initRhiResource();
 		}
+
 		QRhiResourceUpdateBatch* resourceUpdates = nullptr;
 		if (bNeedSubmit.handle()) {
 			resourceUpdates = mRhi->nextResourceUpdateBatch();
@@ -116,13 +144,6 @@ void main()
 
 		currentCmdBuffer->endPass();
 	}
-private:
-	QRhiToolkit::DirtySignal bNeedInit;
-	QRhiToolkit::DirtySignal bNeedSubmit;
-
-	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
-	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 };
 
-#endif // MyFirstTriangleWindow_h__
+#endif // MyFirstTextureWindow_h__
