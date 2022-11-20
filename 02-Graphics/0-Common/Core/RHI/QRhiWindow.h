@@ -18,10 +18,12 @@ public:
 	};
 	QRhiWindow(QRhiWindow::InitParams inInitParmas);
 private:
-	void initPrivate();
-	void renderPrivate();
+	void initializeInternal();
+	void renderInternal();
+	void resizeInternal();
 protected:
 	virtual void onRenderTick() {}
+	virtual void onResizeEvent(const QSize& inSize) {}
 	void exposeEvent(QExposeEvent*) override;
 	bool event(QEvent*) override;
 private:

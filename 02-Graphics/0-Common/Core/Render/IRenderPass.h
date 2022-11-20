@@ -15,6 +15,8 @@ public:
 
 	virtual void compile() = 0;
 
+	virtual void resize(QSize size) {}
+
 	virtual void execute(QRhiCommandBuffer* cmdBuffer) = 0;
 
 	virtual QRhiTexture* getOutputTexture(int slot = 0) {
@@ -23,11 +25,9 @@ public:
 	virtual void setupInputTexture(int slot, QRhiTexture* texture){
 		mInputTextures[slot] = texture;
 	}
-
 	void setFuncSetup(std::function<void()> val) { 
 		mFuncSetup = val; 
 	}
-
 	const QHash<int, QRhiTexture*>& getInputTextures() {
 		return mInputTextures;
 	}

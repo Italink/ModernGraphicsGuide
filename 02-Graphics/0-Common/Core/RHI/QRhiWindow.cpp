@@ -23,7 +23,7 @@ QRhiWindow::QRhiWindow(QRhiWindow::InitParams inInitParmas)
 	}
 }
 
-void QRhiWindow::initPrivate() {
+void QRhiWindow::initializeInternal() {
 	mRhi = QRhiEx::newRhiEx(mInitParams.backend, mInitParams.rhiFlags, this);
 	if (!mRhi)
 		qFatal("Failed to create RHI backend");
@@ -49,7 +49,7 @@ void QRhiWindow::initPrivate() {
 	}
 }
 
-void QRhiWindow::renderPrivate() {
+void QRhiWindow::renderInternal() {
 	if (!mHasSwapChain || mNotExposed)
 		return;
 
@@ -57,7 +57,7 @@ void QRhiWindow::renderPrivate() {
 	// (the newly-exposed case is not actually required by some
 	// platforms/backends, but f.ex. Vulkan on Windows seems to need it)
 	if (mSwapChain->currentPixelSize() != mSwapChain->surfacePixelSize() || mNewlyExposed) {
-		mHasSwapChain = mSwapChain->createOrResize();
+		resizeInternal();
 		if (!mHasSwapChain)
 			return;
 		mNewlyExposed = false;
@@ -69,7 +69,7 @@ void QRhiWindow::renderPrivate() {
 	// depending on the GL implementation)
 	QRhi::FrameOpResult r = mRhi->beginFrame(mSwapChain.get(), mInitParams.beginFrameFlags);
 	if (r == QRhi::FrameOpSwapChainOutOfDate) {
-		mHasSwapChain = mSwapChain->createOrResize();
+		resizeInternal();
 		if (!mHasSwapChain)
 			return;
 		if (mInitParams.printFPS) {
@@ -102,12 +102,17 @@ void QRhiWindow::renderPrivate() {
 		QCoreApplication::postEvent(this, new QEvent(QEvent::UpdateRequest));
 }
 
+void QRhiWindow::resizeInternal() {
+	mHasSwapChain = mSwapChain->createOrResize();
+	onResizeEvent(mSwapChain->currentPixelSize());
+}
+
 void QRhiWindow::exposeEvent(QExposeEvent*)
 {
 	// initialize and start rendering when the window becomes usable for graphics purposes
 	if (isExposed() && !mRunning) {
 		mRunning = true;
-		initPrivate();
+		initializeInternal();
 		mHasSwapChain = mSwapChain->createOrResize();
 	}
 	const QSize surfaceSize = mHasSwapChain ? mSwapChain->surfacePixelSize() : QSize();
@@ -119,14 +124,14 @@ void QRhiWindow::exposeEvent(QExposeEvent*)
 	// always render a frame on exposeEvent() (when exposed) in order to update
 	// immediately on window resize.
 	if (isExposed() && !surfaceSize.isEmpty())
-		renderPrivate();
+		renderInternal();
 }
 
 bool QRhiWindow::event(QEvent* e)
 {
 	switch (e->type()) {
 	case QEvent::UpdateRequest:
-		renderPrivate();
+		renderInternal();
 		break;
 	case QEvent::PlatformSurface:
 		if (static_cast<QPlatformSurfaceEvent*>(e)->surfaceEventType() == QPlatformSurfaceEvent::SurfaceAboutToBeDestroyed) {

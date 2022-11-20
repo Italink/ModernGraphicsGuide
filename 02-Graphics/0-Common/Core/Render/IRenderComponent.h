@@ -1,22 +1,25 @@
-#ifndef IRenderItem_h__
-#define IRenderItem_h__
+#ifndef IComponent_h__
+#define IComponent_h__
 
-#include "RHI/QRhiEx.h"
-#include "Render/IRenderPass.h"
+#include "RHI\QRhiEx.h"
 
-class IRenderItem {
+class IComponent {
 public:
+	void setupRhi(QSharedPointer<QRhiEx> inRhi) {
+		mRhi = inRhi;
+	}
+protected:
 	virtual void recreateResource() {}
 	virtual void recreatePipeline() {}
 	virtual void uploadResource(QRhiResourceUpdateBatch* batch) {}
 	virtual void updatePrePass(QRhiCommandBuffer* cmdBuffer) {}
 	virtual void updateResourcePrePass(QRhiResourceUpdateBatch* batch) {}
 	virtual void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
-
-	QRhiEx::DirtySignal bNeedRecreateResource;
-	QRhiEx::DirtySignal bNeedRecreatePipeline;
 protected:
 	ISceneRenderPass* mScreenRenderPass = nullptr;
+	QRhiEx::DirtySignal bNeedRecreateResource;
+	QRhiEx::DirtySignal bNeedRecreatePipeline;
+	QSharedPointer<QRhiEx> mRhi;
 };
 
-#endif // IRenderItem_h__
+#endif // IComponent_h__
