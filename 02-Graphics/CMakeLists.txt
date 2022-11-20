@@ -67,3 +67,4 @@ set_property(GLOBAL PROPERTY AUTOGEN_SOURCE_GROUP "Generated Files")
 add_definitions(-DVK_NO_PROTOTYPES)
 
 add_example_dir(${CMAKE_CURRENT_SOURCE_DIR}/1-Basis)
+add_example_dir(${CMAKE_CURRENT_SOURCE_DIR}/2-Advance)
