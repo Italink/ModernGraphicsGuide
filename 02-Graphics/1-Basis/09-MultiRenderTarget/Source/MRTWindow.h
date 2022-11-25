@@ -36,7 +36,6 @@ protected:
 	virtual void onRenderTick() override {
 		QRhiRenderTarget* currentRenderTarget = mSwapChain->currentFrameRenderTarget();
 		QRhiCommandBuffer* currentCmdBuffer = mSwapChain->currentFrameCommandBuffer();
-
 		if (bNeedInit.handle()) {
 			initRhiResource();
 		}

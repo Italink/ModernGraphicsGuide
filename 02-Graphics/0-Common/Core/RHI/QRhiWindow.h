@@ -6,6 +6,7 @@
 #include "QRhiEx.h"
 
 class QRhiWindow :public QWindow {
+	friend class QWindowRenderer;
 public:
 	struct InitParams {
 		QRhi::Implementation backend = QRhi::Vulkan;

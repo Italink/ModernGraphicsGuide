@@ -12,7 +12,6 @@ void QFrameGraphNode::tryCompile() {
 		}
 	}
 	if (canSetup) {
-		mRenderPass->setup();
 		mRenderPass->compile();
 		isCompiled = true;
 	}
@@ -31,25 +30,30 @@ void QFrameGraph::compile() {
 	}
 }
 
-void QFrameGraph::executable(QRhiCommandBuffer* cmdBuffer) {
+void QFrameGraph::render(QRhiCommandBuffer* cmdBuffer) {
 	for (auto& renderPass : mRenderQueue) {
-		renderPass->mRenderPass->execute(cmdBuffer);
+		renderPass->mRenderPass->render(cmdBuffer);
 	}
 }
 
-QFrameGraphBuilder* QFrameGraphBuilder::begin(IRenderer* renderer) {
-	mFrameGraph = std::make_shared<QFrameGraph>();
-	mRenderer = renderer;
-	return this;
+void QFrameGraph::resize(const QSize& size)
+{
+	for (auto& renderPass : mRenderQueue) {
+		renderPass->mRenderPass->resize(size);
+	}
 }
 
-QFrameGraphBuilder* QFrameGraphBuilder::node(QString name, std::shared_ptr<IRenderPassBase> renderPass, std::function<void()> funcSetup) {
-	std::shared_ptr<QFrameGraphNode>& node = mFrameGraph->mGraphNodeMap[name];
+QFrameGraphBuilder::QFrameGraphBuilder(IRenderer* renderer) {
+	mFrameGraph = QSharedPointer<QFrameGraph>::create();
+	mRenderer = renderer;
+}
+
+QFrameGraphBuilder* QFrameGraphBuilder::node(QString name, QSharedPointer<IRenderPassBase> renderPass) {
+	QSharedPointer<QFrameGraphNode>& node = mFrameGraph->mGraphNodeMap[name];
 	node.reset(new QFrameGraphNode);
 	node->mName = name;
 	node->mRenderPass = renderPass;
 	node->mRenderPass->mRenderer = mRenderer;
-	node->mRenderPass->setFuncSetup(funcSetup);
 	mCurrentNodeName = name;
 	mFrameGraph->mRenderQueue << node;
 	return this;
@@ -57,16 +61,12 @@ QFrameGraphBuilder* QFrameGraphBuilder::node(QString name, std::shared_ptr<IRend
 
 QFrameGraphBuilder* QFrameGraphBuilder::dependency(QStringList dependencyList) {
 	Q_ASSERT(mFrameGraph->mGraphNodeMap.contains(mCurrentNodeName));
-	std::shared_ptr<QFrameGraphNode>& node = mFrameGraph->mGraphNodeMap[mCurrentNodeName];
+	QSharedPointer<QFrameGraphNode>& node = mFrameGraph->mGraphNodeMap[mCurrentNodeName];
 	for (QString& dep : dependencyList) {
 		Q_ASSERT(mFrameGraph->mGraphNodeMap.contains(mCurrentNodeName));
-		std::shared_ptr<QFrameGraphNode>& depNode = mFrameGraph->mGraphNodeMap[dep];
+		QSharedPointer<QFrameGraphNode>& depNode = mFrameGraph->mGraphNodeMap[dep];
 		node->mDependencyList << depNode.get();
 		depNode->mSubPassList << node.get();
 	}
 	return this;
-}
-
-std::shared_ptr<QFrameGraph> QFrameGraphBuilder::end() {
-	return mFrameGraph;
 }

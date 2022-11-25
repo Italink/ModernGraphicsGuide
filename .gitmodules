@@ -1,0 +1,3 @@
+[submodule "02-Graphics/0-Common/3rdParty/QDetailWidget"]
+	path = 02-Graphics/0-Common/3rdParty/QDetailWidget
+	url = https://github.com/Italink/QDetailWidget.git

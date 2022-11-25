@@ -2,51 +2,54 @@
 #define IRenderPassBase_h__
 
 #include "RHI/QRhiEx.h"
+#include "IRenderComponent.h"
 
 class IRenderer;
 
 class IRenderPassBase: public QObject{
 	friend class QFrameGraphBuilder;
 public:
-	void setup() {
-		if(mFuncSetup)
-			mFuncSetup();
-	}
-
 	virtual void compile() = 0;
 
-	virtual void resize(QSize size) {}
+	virtual void resize(const QSize& size) {}
 
-	virtual void execute(QRhiCommandBuffer* cmdBuffer) = 0;
+	virtual void render(QRhiCommandBuffer* cmdBuffer) = 0;
 
 	virtual QRhiTexture* getOutputTexture(int slot = 0) {
 		return mOutputTextures.value(slot, nullptr);
 	}
-	virtual void setupInputTexture(int slot, QRhiTexture* texture){
-		mInputTextures[slot] = texture;
-	}
-	void setFuncSetup(std::function<void()> val) { 
-		mFuncSetup = val; 
-	}
-	const QHash<int, QRhiTexture*>& getInputTextures() {
-		return mInputTextures;
+	IRenderPassBase* setupInputTexture(int inInputSlot,const QString& inPassName, int inPassSlot) {
+		mInputTextures[inInputSlot] = { inPassName ,inPassSlot,nullptr};
 	}
 	const QHash<int, QRhiTexture*>& getOutputTextures() {
 		return mOutputTextures;
 	}
-private:
-	std::function<void()> mFuncSetup;
 protected:
 	IRenderer* mRenderer = nullptr;
-	QHash<int, QRhiTexture*> mInputTextures;
+	QSharedPointer<QRhiEx> mRhi;
+	struct InputTextureLinker {
+		QString passName;
+		int passSlot;
+		QRhiTexture* result = nullptr;
+	};
+	QHash<int, InputTextureLinker> mInputTextures;
 	QHash<int, QRhiTexture*> mOutputTextures;
 };
 
 class ISceneRenderPass :public IRenderPassBase {
 public:
-	virtual int getDeferPassSampleCount() = 0;
-	virtual QVector<QRhiGraphicsPipeline::TargetBlend> getDeferPassBlendStates() = 0;
-	virtual QRhiRenderPassDescriptor* getDeferPassDescriptor() = 0;
+	virtual int getSampleCount() = 0;
+	virtual QVector<QRhiGraphicsPipeline::TargetBlend> getBlendStates() = 0;
+	virtual QRhiRenderPassDescriptor* getRenderPassDescriptor() = 0;
+
+	ISceneRenderPass* addRenderComponent(IRenderComponent* inRenderComponent) {
+		inRenderComponent->mRhi = mRhi;
+		inRenderComponent->mScreenRenderPass = this;
+		mRenderComponents.push_back(inRenderComponent);
+		return this;
+	}
+protected:
+	QVector<IRenderComponent*> mRenderComponents;
 };
 
 #endif // IRenderPassBase_h__

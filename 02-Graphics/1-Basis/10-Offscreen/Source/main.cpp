@@ -23,7 +23,6 @@ int main(int argc, char **argv)
 	{
 		renderTargetTexture.reset(rhi->newTexture(QRhiTexture::RGBA8, QSize(1280, 720), 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
 		renderTargetTexture->create();
-
 		renderTarget.reset(rhi->newTextureRenderTarget({ renderTargetTexture.get() }));
 		renderTargetDesc.reset(renderTarget->newCompatibleRenderPassDescriptor());
 		renderTarget->setRenderPassDescriptor(renderTargetDesc.get());
@@ -48,7 +47,7 @@ int main(int argc, char **argv)
 		targetBlend.enable = false;
 		pipeline->setTargetBlends({ QRhiGraphicsPipeline::TargetBlend() });
 
-		pipeline->setSampleCount(renderTargetTexture->sampleCount());
+		pipeline->setSampleCount(renderTarget->sampleCount());
 
 		pipeline->setDepthTest(false);
 		pipeline->setDepthOp(QRhiGraphicsPipeline::Always);

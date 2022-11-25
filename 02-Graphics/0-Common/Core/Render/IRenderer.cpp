@@ -1,17 +1,24 @@
 #include "IRenderer.h"
 
-IRenderer::IRenderer(){}
-
-void IRenderer::buildFrameGraph() {
+IRenderer::IRenderer(QSharedPointer<QRhiEx> inRhi, const QSize& inFrameSize)
+	: mRhi(inRhi)
+	, mFrameSize(inFrameSize)
+{
 }
 
-void IRenderer::render(QRhiCommandBuffer* cmdBuffer) {
-	if(mFrameGraph)
-		mFrameGraph->executable(cmdBuffer);
+QFrameGraphBuilder* IRenderer::beginFrameGraph()
+{
+	mFrameGraphBuilder = QSharedPointer<QFrameGraphBuilder>::create(this);
+	return mFrameGraphBuilder.get();
 }
 
-void IRenderer::resize(QSize size) {
+IRenderer* IRenderer::endFrameGraph()
+{
+	return this;
+}
+
+void IRenderer::resize(const QSize& size) {
 	mFrameSize = size;
 	if (mFrameGraph)
-		mFrameGraph->compile();
+		mFrameGraph->resize(size);
 }
