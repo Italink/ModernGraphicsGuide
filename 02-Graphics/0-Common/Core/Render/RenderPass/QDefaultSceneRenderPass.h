@@ -4,6 +4,7 @@
 #include "Render/IRenderPass.h"
 
 class QDefaultSceneRenderPass : public ISceneRenderPass {
+	Q_OBJECT
 public:
 	int getSampleCount() override;
 	int getBlendStateCount() override;

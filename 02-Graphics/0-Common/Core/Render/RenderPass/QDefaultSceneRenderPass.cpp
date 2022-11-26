@@ -35,7 +35,7 @@ void QDefaultSceneRenderPass::render(QRhiCommandBuffer* cmdBuffer) {
 	for (auto& item : mRenderComponents) {
 		item->updatePrePass(cmdBuffer);
 	}
-	cmdBuffer->beginPass(mRenderer->renderTaget(), QColor::fromRgbF(1.0f, 1.0f, 1.0f, 1.0f), { 1.0f, 0 }, resUpdateBatch);
+	cmdBuffer->beginPass(mRenderer->renderTaget(), QColor::fromRgbF(0.0f, 0.0f, 0.0f, 1.0f), { 1.0f, 0 }, resUpdateBatch);
 	QRhiViewport viewport(0, 0, mRenderer->renderTaget()->pixelSize().width(), mRenderer->renderTaget()->pixelSize().height());
 	for (auto& item : mRenderComponents) {
 		if (needRecreatePipeline(item)) {

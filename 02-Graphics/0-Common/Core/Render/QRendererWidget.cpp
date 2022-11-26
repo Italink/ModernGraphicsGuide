@@ -22,17 +22,19 @@ private:
 
 QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
 	: mRhiWindow(new QInnerRhiWindow(inInitParams))
-	, mDetailWidget(new QDetailWidget())
+	, mDetailWidget(new QDetailWidget(QDetailWidgetFlag::DisplayObjectTree| QDetailWidgetFlag::DisplaySearcher))
+	, mCamera(new QCamera)
 {
 	mRhiWindow->setTickFunctor([this]() {
 		if (bNeedRecompileRenderer.handle()) {
 			if (mRenderer == nullptr) {
 				mRenderer = new QWindowRenderer(mRhiWindow);
+				mRenderer->setCamera(mCamera);
 				mRenderer->setParent(this);
-				mDetailWidget->SetInstances(mRenderer);
 			}
 			mRenderer->setFrameGraph(mFrameGraph);
 			mRenderer->complie();
+			mDetailWidget->SetInstances(mRenderer);
 		}
 		mRenderer->render();
 	});
@@ -51,7 +53,8 @@ QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
 }
 
 void QRendererWidget::setupCamera() {
-	mRenderer->getCamera()->setupWindow(mRhiWindow);
+	
+	mCamera->setupWindow(mRhiWindow);
 }
 
 void QRendererWidget::setupDetailWidget() {

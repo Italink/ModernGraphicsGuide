@@ -6,18 +6,23 @@ IRenderer::IRenderer(QSharedPointer<QRhiEx> inRhi, const QSize& inFrameSize)
 {
 }
 
+void IRenderer::complie() {
+	mFrameGraph->compile(this);
+}
+
 void IRenderer::setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph) {
 	mFrameGraph = inFrameGraph;
 }
 
-void IRenderer::complie() {
-	mFrameGraph->compile(this);
-}
 
 void IRenderer::resize(const QSize& size) {
 	mFrameSize = size;
 	if (mFrameGraph)
 		mFrameGraph->resize(size);
+}
+
+void IRenderer::setCamera(QSharedPointer<QCamera> inCamera) {
+	mCamera = inCamera;
 }
 
 IRenderPassBase* IRenderer::getRenderPassByName(const QString& inName) {

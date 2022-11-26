@@ -3,6 +3,15 @@
 
 #include "RHI\QRhiEx.h"
 
+#define Q_PROPERTY_AUTO(Type,Name)\
+    Q_PROPERTY(Type Name READ get_##Name WRITE set_##Name) \
+    Type get_##Name(){ return Name; } \
+    void set_##Name(Type var){ \
+        Name = var;  \
+		qDebug()<<"Set "<<#Name<<": "<<var; \
+    } \
+    Type Name
+
 class IRenderComponent: public QObject {
 	friend class ISceneRenderPass;
 public:

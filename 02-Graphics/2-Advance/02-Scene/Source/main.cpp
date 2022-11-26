@@ -1,7 +1,8 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
 #include "Render/RenderPass/QDefaultSceneRenderPass.h"
-#include "Render/IRenderComponent.h"
+#include "Render/RenderComponent/ISceneRenderComponent.h"
+#include "Core/QMetaDataDefine.h"
 
 static float VertexData[] = {
 	//position(xy)	
@@ -10,17 +11,27 @@ static float VertexData[] = {
 	 0.5f,  -0.5f,
 };
 
-class QTriangleRenderComponent : public IRenderComponent {
+class QTriangleRenderComponent : public ISceneRenderComponent {
+	Q_OBJECT
+private:
+	Q_PROPERTY_AUTO(QColor, Color) = Qt::green;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
+	QScopedPointer<QRhiBuffer> mUniformBuffer;
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
+
+		mUniformBuffer.reset(mRhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(float)*16 + sizeof(QVector4D)));
+		mUniformBuffer->create();
 	}
 	void recreatePipeline() override {
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());
+		mShaderBindings->setBindings({
+			QRhiShaderResourceBinding::uniformBuffer(0,QRhiShaderResourceBinding::VertexStage,mUniformBuffer.get())
+		});
 		mShaderBindings->create();
 
 		mPipeline.reset(mRhi->newGraphicsPipeline());
@@ -36,20 +47,32 @@ protected:
 		mPipeline->setDepthWrite(false);
 
 		QShader vs = QRhiEx::newShaderFromCode(QShader::VertexStage, R"(#version 440
-layout(location = 0) in vec2 position;
+layout(location = 0) in vec2 iPostion;
+layout(location = 0) out vec4 vColor;
+layout(location = 1) out float vDepth;
+
+layout(binding = 0) uniform UniformBuffer{
+	mat4 uTransform;
+	vec4 uColor;
+}UBO;
+
 out gl_PerVertex { 
 	vec4 gl_Position;
 };
 void main(){
-    gl_Position = vec4(position,0.0f,1.0f);
+    gl_Position = UBO.uTransform * vec4(iPostion,0.0f,1.0f);
+	vColor = UBO.uColor;
+	vDepth = gl_Position.z;
 }
 )");
 		Q_ASSERT(vs.isValid());
 
 		QShader fs = QRhiEx::newShaderFromCode(QShader::FragmentStage, R"(#version 440
-layout(location = 0) out vec4 fragColor;
+layout(location = 0) in vec4 vColor;
+layout(location = 1) in float vDepth;
+layout(location = 0) out vec4 oFragColor;
 void main(){
-    fragColor = vec4(0.1f,0.5f,0.9f,1.0f);
+    oFragColor = vColor;
 }
 )");
 		Q_ASSERT(fs.isValid());
@@ -73,11 +96,15 @@ void main(){
 		mPipeline->setRenderPassDescriptor(sceneRenderPass()->getRenderPassDescriptor());
 		mPipeline->create();
 	}
-
 	void uploadResource(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
-
+	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
+		QMatrix4x4 mat = getTransform();
+		batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(float) * 16, &mat);
+		QVector4D vec4(Color.redF(), Color.greenF(), Color.blueF(), Color.alphaF());
+		batch->updateDynamicBuffer(mUniformBuffer.get(), sizeof(float) * 16, sizeof(QVector4D), &vec4);
+	}
 	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
 		cmdBuffer->setGraphicsPipeline(mPipeline.get());
 		cmdBuffer->setViewport(viewport);
@@ -92,6 +119,7 @@ int main(int argc, char** argv) {
 	qputenv("QSG_INFO", "1");
 	QApplication app(argc, argv);
 	QRhiWindow::InitParams initParams;
+	initParams.backend = QRhi::Implementation::D3D11;
 	QRendererWidget widget(initParams);
 	widget.setupDetailWidget();
 	widget.setFrameGraph(
@@ -105,3 +133,5 @@ int main(int argc, char** argv) {
 	widget.show();
 	return app.exec();
 }
+
+#include "main.moc"

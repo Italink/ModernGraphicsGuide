@@ -64,6 +64,7 @@ protected:
 };
 
 class ISceneRenderPass :public IRenderPassBase {
+	Q_OBJECT
 public:
 	virtual int getSampleCount() = 0;
 	virtual int getBlendStateCount() = 0;
