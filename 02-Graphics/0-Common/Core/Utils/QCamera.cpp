@@ -2,6 +2,7 @@
 #include "qevent.h"
 #include <QApplication>
 #include <QDateTime>
+#include "Core/QPropertyHandler.h"
 
 QCamera::QCamera(){
 
@@ -30,12 +31,14 @@ float QCamera::getRoll()
 void QCamera::setPosition(const QVector3D& newPosition)
 {
 	mPosition = newPosition;
+	QPropertyHandler::TryFlushProperty(this, "Position");;
 	calculateViewMatrix();
 }
 
 void QCamera::setRotation(const QVector3D& newRotation)
 {
 	mRotation = newRotation;
+	QPropertyHandler::TryFlushProperty(this, "Rotation");;
 	calculateCameraDirection();
 	calculateViewMatrix();
 }
@@ -44,15 +47,18 @@ QVector3D QCamera::getPosition() {
 	return mPosition;
 }
 
+QVector3D QCamera::getRotation() {
+	return mRotation;
+}
+
 void QCamera::setAspectRatio(float val)
 {
 	mAspectRatio = val;
 	calculateClipMatrix();
 }
 
-QMatrix4x4 QCamera::getMatrixVPWithCorr()
-{
-	return mRhi->clipSpaceCorrMatrix() * getMatrixClip() * mViewMatrix;
+QMatrix4x4 QCamera::getMatrixVPWithCorr(QRhiEx* inRhi) {
+	return inRhi->clipSpaceCorrMatrix() * getMatrixClip() * mViewMatrix;
 }
 
 QMatrix4x4 QCamera::getMatrixClip()
@@ -74,10 +80,6 @@ void QCamera::setupWindow(QWindow* window)
 		calculateCameraDirection();
 		calculateViewMatrix();
 	}
-}
-
-void QCamera::setupRhi(QSharedPointer<QRhiEx> inRhi) {
-	mRhi = inRhi;
 }
 
 bool QCamera::eventFilter(QObject* watched, QEvent* event)

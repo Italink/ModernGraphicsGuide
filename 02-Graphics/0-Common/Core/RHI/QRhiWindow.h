@@ -18,6 +18,7 @@ public:
 		bool printFPS = true;
 	};
 	QRhiWindow(QRhiWindow::InitParams inInitParmas);
+	QSharedPointer<QRhiEx> getRhi() const { return mRhi; }
 private:
 	void initializeInternal();
 	void renderInternal();

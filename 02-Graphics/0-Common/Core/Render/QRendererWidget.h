@@ -22,7 +22,7 @@ protected:
 	QInnerRhiWindow* mRhiWindow = nullptr;
 	QDetailWidget* mDetailWidget = nullptr;
 	QWindowRenderer* mRenderer = nullptr;
-	QSharedPointer<QCamera> mCamera;
+	QCamera* mCamera;
 	QSharedPointer<QFrameGraph> mFrameGraph;
 
 	QRhiEx::DirtySignal bNeedRecompileRenderer;

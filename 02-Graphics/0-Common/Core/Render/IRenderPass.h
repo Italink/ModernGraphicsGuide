@@ -19,6 +19,8 @@ public:
 		setParent(mRenderer);
 	}
 
+	IRenderer* getRenderer() const { return mRenderer; }
+
 	virtual void compile() = 0;
 
 	virtual void resize(const QSize& size) {}

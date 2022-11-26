@@ -14,7 +14,7 @@ static float VertexData[] = {
 class QTriangleRenderComponent : public ISceneRenderComponent {
 	Q_OBJECT
 private:
-	Q_PROPERTY_AUTO(QColor, Color) = Qt::green;
+	Q_PROPERTY_VAR(QColor, Color) = Qt::green;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
 	QScopedPointer<QRhiBuffer> mUniformBuffer;
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
@@ -100,7 +100,7 @@ void main(){
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
 	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
-		QMatrix4x4 mat = getTransform();
+		QMatrix4x4 mat = calculateMatrixMVP();
 		batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(float) * 16, &mat);
 		QVector4D vec4(Color.redF(), Color.greenF(), Color.blueF(), Color.alphaF());
 		batch->updateDynamicBuffer(mUniformBuffer.get(), sizeof(float) * 16, sizeof(QVector4D), &vec4);
@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
 	initParams.backend = QRhi::Implementation::D3D11;
 	QRendererWidget widget(initParams);
 	widget.setupDetailWidget();
+	widget.setupCamera();
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
 		->node("Triangle", (new QDefaultSceneRenderPass())

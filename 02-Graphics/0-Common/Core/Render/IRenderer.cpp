@@ -21,7 +21,7 @@ void IRenderer::resize(const QSize& size) {
 		mFrameGraph->resize(size);
 }
 
-void IRenderer::setCamera(QSharedPointer<QCamera> inCamera) {
+void IRenderer::setCamera(QCamera* inCamera) {
 	mCamera = inCamera;
 }
 

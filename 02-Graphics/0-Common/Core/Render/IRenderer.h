@@ -7,6 +7,7 @@
 
 class IRenderer: public QObject {
 	Q_OBJECT
+		Q_PROPERTY(QCamera* Camera READ getCamera WRITE setCamera)
 public:
 	IRenderer(QSharedPointer<QRhiEx> inRhi,const QSize& inFrameSize);
 
@@ -17,17 +18,17 @@ public:
 	virtual int sampleCount() = 0;
 	virtual void resize(const QSize& size);
 
-	void setCamera(QSharedPointer<QCamera> inCamera);
+	void setCamera(QCamera* inCamera);
 	void setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph);
 
 	QSize getFrameSize() const { return mFrameSize; }
-	QCamera* getCamera() const { return mCamera.get(); }
+	QCamera* getCamera() const { return mCamera; }
 	IRenderPassBase* getRenderPassByName(const QString& inName);
 	QSharedPointer<QRhiEx> getRhi() { return mRhi; }
 protected:
 	QSharedPointer<QRhiEx> mRhi;
 	QSharedPointer<QFrameGraph> mFrameGraph;
-	QSharedPointer<QCamera> mCamera;
+	QCamera* mCamera;
 	QSize mFrameSize;
 };
 
