@@ -18,26 +18,23 @@ macro(get_all_targets_internal TARGETS DIR)
 endmacro()
 
 function(initlize_common_libaray)
-    set(COMMON_TARGETS)
     add_subdirectory(0-Common/Core)
+    add_subdirectory(0-Common/3rdParty/QDetailWidget)
     get_all_targets(COMMON_LOCAL_TARGETS)
     list(APPEND COMMON_TARGETS ${COMMON_LOCAL_TARGETS})
     foreach(TARGET_ITEM ${COMMON_LOCAL_TARGETS})
         set_target_properties(${TARGET_ITEM} PROPERTIES FOLDER "0-Common")
     endforeach()
-    list(APPEND COMMON_TARGETS)
-    set(COMMON_TARGETS ${COMMON_TARGETS} PARENT_SCOPE)
 endfunction()
 
 function(add_example EXAMPLE_PATH)
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_PATH} NAME)
     file(GLOB_RECURSE PROJECT_SOURCE FILES ${EXAMPLE_PATH}/*.h  ${EXAMPLE_PATH}/*.cpp ${EXAMPLE_PATH}/*.qrc)
-
     add_executable(${EXAMPLE_NAME} 
         ${PROJECT_SOURCE}
     )
     target_compile_definitions(${EXAMPLE_NAME} PRIVATE PROJECT_PATH="${EXAMPLE_PATH}")
-    target_link_libraries(${EXAMPLE_NAME} PRIVATE ${COMMON_TARGETS})
+    target_link_libraries(${EXAMPLE_NAME} PRIVATE Core )
 endfunction()
 
 function(add_example_dir DIR_PATH)

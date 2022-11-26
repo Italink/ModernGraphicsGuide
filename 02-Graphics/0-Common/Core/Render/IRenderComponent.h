@@ -3,20 +3,25 @@
 
 #include "RHI\QRhiEx.h"
 
-class IRenderComponent {
+class IRenderComponent: public QObject {
 	friend class ISceneRenderPass;
-protected:
+public:
 	virtual void recreateResource() {}
 	virtual void recreatePipeline() {}
 	virtual void uploadResource(QRhiResourceUpdateBatch* batch) {}
 	virtual void updatePrePass(QRhiCommandBuffer* cmdBuffer) {}
 	virtual void updateResourcePrePass(QRhiResourceUpdateBatch* batch) {}
 	virtual void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
+	ISceneRenderPass* sceneRenderPass() { return mScreenRenderPass; }
+
+	void requestRecreateResource(){ bNeedRecreateResource.mark(); }
+	void requestRecreatePipeline(){ bNeedRecreatePipeline.mark(); }
 protected:
 	QSharedPointer<QRhiEx> mRhi;
-	ISceneRenderPass* mScreenRenderPass = nullptr;
+protected:
 	QRhiEx::DirtySignal bNeedRecreateResource;
 	QRhiEx::DirtySignal bNeedRecreatePipeline;
+	ISceneRenderPass* mScreenRenderPass = nullptr;
 };
 
 #endif // IRenderComponent_h__

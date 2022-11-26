@@ -9,7 +9,6 @@ class QWindowRenderer : public IRenderer {
 	Q_OBJECT
 public:
 	QWindowRenderer(QRhiWindow* inWindow);
-
 	virtual void render() override;
 	virtual QRhiRenderTarget* renderTaget() override;
 	virtual int sampleCount()override;

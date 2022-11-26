@@ -2,13 +2,23 @@
 #define IRenderPassBase_h__
 
 #include "RHI/QRhiEx.h"
+#include "IRenderer.h"
 #include "IRenderComponent.h"
 
-class IRenderer;
-
 class IRenderPassBase: public QObject{
-	friend class QFrameGraphBuilder;
+	friend class QFrameGraph;
+	struct InputTextureLinker {
+		QString passName;
+		int passSlot;
+		QRhiTexture* result = nullptr;
+	};
 public:
+	virtual void setRenderer(IRenderer* inRenderer) {
+		mRenderer = inRenderer;
+		mRhi = inRenderer->getRhi();
+		setParent(mRenderer);
+	}
+
 	virtual void compile() = 0;
 
 	virtual void resize(const QSize& size) {}
@@ -18,20 +28,37 @@ public:
 	virtual QRhiTexture* getOutputTexture(int slot = 0) {
 		return mOutputTextures.value(slot, nullptr);
 	}
+	const QHash<int, QRhiTexture*>& getOutputTextures() {
+		return mOutputTextures;
+	}
+
 	IRenderPassBase* setupInputTexture(int inInputSlot,const QString& inPassName, int inPassSlot) {
 		mInputTextures[inInputSlot] = { inPassName ,inPassSlot,nullptr};
 	}
-	const QHash<int, QRhiTexture*>& getOutputTextures() {
-		return mOutputTextures;
+
+	QRhiTexture* getInputTexture(int slot = 0) {
+		InputTextureLinker & linker = mInputTextures[slot];
+		if (linker.result)
+			return linker.result;
+		return linker.result = mRenderer->getRenderPassByName(linker.passName)->getOutputTexture(linker.passSlot);
+	}
+
+	QList<IRenderPassBase*> getInputRenderPasses() {
+		QList<IRenderPassBase*> inputRenderPasses;
+		for (auto& inputLinker : mInputTextures) {
+			inputRenderPasses << mRenderer->getRenderPassByName(inputLinker.passName);
+		}
+		return inputRenderPasses;
+	}
+
+	void cleanup() {
+		for (auto& inputLinker : mInputTextures) {
+			inputLinker.result = nullptr;
+		}
 	}
 protected:
 	IRenderer* mRenderer = nullptr;
 	QSharedPointer<QRhiEx> mRhi;
-	struct InputTextureLinker {
-		QString passName;
-		int passSlot;
-		QRhiTexture* result = nullptr;
-	};
 	QHash<int, InputTextureLinker> mInputTextures;
 	QHash<int, QRhiTexture*> mOutputTextures;
 };
@@ -39,14 +66,30 @@ protected:
 class ISceneRenderPass :public IRenderPassBase {
 public:
 	virtual int getSampleCount() = 0;
-	virtual QVector<QRhiGraphicsPipeline::TargetBlend> getBlendStates() = 0;
+	virtual int getBlendStateCount() = 0;
 	virtual QRhiRenderPassDescriptor* getRenderPassDescriptor() = 0;
+	void setRenderer(IRenderer* inRenderer) override {
+		IRenderPassBase::setRenderer(inRenderer);
+		for (auto& comp : mRenderComponents) {
+			comp->mRhi = mRhi;
+		}
+	}
 
 	ISceneRenderPass* addRenderComponent(IRenderComponent* inRenderComponent) {
+		inRenderComponent->setParent(this);
 		inRenderComponent->mRhi = mRhi;
 		inRenderComponent->mScreenRenderPass = this;
+		inRenderComponent->requestRecreateResource();
+		inRenderComponent->requestRecreatePipeline();
 		mRenderComponents.push_back(inRenderComponent);
 		return this;
+	}
+protected:
+	bool needRecreateResource(IRenderComponent* inComponent) {
+		return inComponent->bNeedRecreateResource.handle();
+	}
+	bool needRecreatePipeline(IRenderComponent* inComponent) {
+		return inComponent->bNeedRecreatePipeline.handle();
 	}
 protected:
 	QVector<IRenderComponent*> mRenderComponents;

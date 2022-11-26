@@ -18,4 +18,5 @@ target_link_libraries(Core PUBLIC
     Qt::Widgets
     Qt::WidgetsPrivate
     Qt::ShaderToolsPrivate
+    QDetailWidget
 )

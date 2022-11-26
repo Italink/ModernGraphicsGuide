@@ -6,19 +6,20 @@ IRenderer::IRenderer(QSharedPointer<QRhiEx> inRhi, const QSize& inFrameSize)
 {
 }
 
-QFrameGraphBuilder* IRenderer::beginFrameGraph()
-{
-	mFrameGraphBuilder = QSharedPointer<QFrameGraphBuilder>::create(this);
-	return mFrameGraphBuilder.get();
+void IRenderer::setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph) {
+	mFrameGraph = inFrameGraph;
 }
 
-IRenderer* IRenderer::endFrameGraph()
-{
-	return this;
+void IRenderer::complie() {
+	mFrameGraph->compile(this);
 }
 
 void IRenderer::resize(const QSize& size) {
 	mFrameSize = size;
 	if (mFrameGraph)
 		mFrameGraph->resize(size);
+}
+
+IRenderPassBase* IRenderer::getRenderPassByName(const QString& inName) {
+	return mFrameGraph->getRenderPassMap().value(inName);
 }

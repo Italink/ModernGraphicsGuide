@@ -1,44 +1,36 @@
 ﻿#ifndef QFrameGraph_h__
 #define QFrameGraph_h__
 
-#include "IRenderPass.h"
+#include "RHI/QRhiEx.h"
 
 class IRenderer;
-
-class QFrameGraphNode {
-	friend class QFrameGraph;
-private:
-	void tryCompile();
-public:
-	QString mName;
-	QSharedPointer<IRenderPassBase> mRenderPass;
-	QList<QFrameGraphNode*> mDependencyList;
-	QList<QFrameGraphNode*> mSubPassList;
-	std::atomic_bool isCompiled = false;
-};
+class IRenderPassBase;
 
 class QFrameGraph {
 	friend class QFrameGraphBuilder;
 public:
-	void compile();
+	void compile(IRenderer* renderer);
 	void render(QRhiCommandBuffer* cmdBuffer);
 	void resize(const QSize& size);
-	const QHash<QString, QSharedPointer<QFrameGraphNode>>& getGraphNodeMap() const { return mGraphNodeMap; }
+	const QHash<QString, IRenderPassBase*>& getRenderPassMap() const { return mRenderPassMap; }
+protected:
+	void rebuildTopology();
 private:
-	QHash<QString, QSharedPointer<QFrameGraphNode>> mGraphNodeMap;
-	QList<QSharedPointer<QFrameGraphNode>> mRenderQueue;
+	QHash<QString, IRenderPassBase*> mRenderPassMap;
+	QList<IRenderPassBase*> mRenderPassTopology;
 };
 
 class QFrameGraphBuilder {
 public:
-	QFrameGraphBuilder(IRenderer* renderer);
-	QFrameGraphBuilder* node(QString name, QSharedPointer<IRenderPassBase> renderPass);
-	QFrameGraphBuilder* dependency(QStringList dependencyList);
+	static QFrameGraphBuilder* begin();
+	QFrameGraphBuilder* node(const QString& inName, IRenderPassBase* inRenderPass);
+	QSharedPointer<QFrameGraph> end();
 private:
+	QFrameGraphBuilder();
+
 	QSharedPointer<QFrameGraph> mFrameGraph;
 	QString mCurrentNodeName;
-	QList<QSharedPointer<IRenderPassBase>> mRenderPassNodeList;
-	IRenderer* mRenderer = nullptr;
+	QList<IRenderPassBase*> mRenderPassNodeList;
 };
 
 #endif // QFrameGraphBuilder_h__
