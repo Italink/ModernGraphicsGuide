@@ -41,7 +41,6 @@ protected:
 		mPipeline->setTargetBlends({ QRhiGraphicsPipeline::TargetBlend() });
 
 		mPipeline->setSampleCount(sceneRenderPass()->getSampleCount());
-
 		mPipeline->setDepthTest(false);
 		mPipeline->setDepthOp(QRhiGraphicsPipeline::Always);
 		mPipeline->setDepthWrite(false);

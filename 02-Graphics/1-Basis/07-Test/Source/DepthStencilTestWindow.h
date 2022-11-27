@@ -1,5 +1,5 @@
-#ifndef StencilTestWindow_h__
-#define StencilTestWindow_h__
+#ifndef DepthStencilTestWindow_h__
+#define DepthStencilTestWindow_h__
 
 #include "RHI/QRhiWindow.h"
 
@@ -17,7 +17,7 @@ static float VertexData2[] = {
 	 0.7f,  -0.5f,	 0.0f,		0.0f, 0.0f, 1.0f, 1.0f,
 };
 
-class StencilTestWindow : public QRhiWindow {
+class DepthStencilTestWindow : public QRhiWindow {
 private:
 	QRhiEx::DirtySignal bNeedInit;
 	QRhiEx::DirtySignal bNeedSubmit;
@@ -30,7 +30,7 @@ private:
 	QScopedPointer<QRhiBuffer> mVertexBuffer2;
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline2;
 public:
-	StencilTestWindow(QRhiWindow::InitParams inInitParams) :QRhiWindow(inInitParams) {
+	DepthStencilTestWindow(QRhiWindow::InitParams inInitParams) :QRhiWindow(inInitParams) {
 		bNeedInit.mark();
 		bNeedSubmit.mark();
 	}
@@ -166,4 +166,4 @@ void main(){
 
 };
 
-#endif // StencilTestWindow_h__
+#endif // DepthStencilTestWindow_h__

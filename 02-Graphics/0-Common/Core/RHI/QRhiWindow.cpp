@@ -110,10 +110,13 @@ void QRhiWindow::resizeInternal() {
 void QRhiWindow::exposeEvent(QExposeEvent*)
 {
 	// initialize and start rendering when the window becomes usable for graphics purposes
-	if (isExposed() && !mRunning) {
-		mRunning = true;
-		initializeInternal();
+	if (isExposed()) {
+		if (!mRunning) {
+			mRunning = true;
+			initializeInternal();
+		}
 		mHasSwapChain = mSwapChain->createOrResize();
+		mNotExposed = false;
 	}
 	const QSize surfaceSize = mHasSwapChain ? mSwapChain->surfacePixelSize() : QSize();
 

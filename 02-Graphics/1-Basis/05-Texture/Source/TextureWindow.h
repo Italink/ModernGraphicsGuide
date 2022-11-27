@@ -45,9 +45,11 @@ protected:
 		mSapmler->create();
 
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());
+
 		mShaderBindings->setBindings({
 			QRhiShaderResourceBinding::texture(0, QRhiShaderResourceBinding::FragmentStage, mTexture.get())
 		});
+
 		mShaderBindings->create();
 
 		mPipeline.reset(mRhi->newGraphicsPipeline());

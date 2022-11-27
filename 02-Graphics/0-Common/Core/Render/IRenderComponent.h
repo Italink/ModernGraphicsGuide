@@ -2,12 +2,14 @@
 #define IRenderComponent_h__
 
 #include "RHI\QRhiEx.h"
+#include "QRhiGraphicsPipelineEx.h"
 
 class ISceneRenderPass;
 
 class IRenderComponent: public QObject {
 	friend class ISceneRenderPass;
 public:
+	virtual bool isVaild() { return true; }
 	virtual void recreateResource() {}
 	virtual void recreatePipeline() {}
 	virtual void uploadResource(QRhiResourceUpdateBatch* batch) {}
@@ -18,6 +20,10 @@ public:
 
 	void requestRecreateResource(){ bNeedRecreateResource.mark(); }
 	void requestRecreatePipeline(){ bNeedRecreatePipeline.mark(); }
+protected:
+	QRhiGraphicsPipelineEx* newGraphicsPipeline() {
+		return new QRhiGraphicsPipelineEx(this);
+	}
 protected:
 	QSharedPointer<QRhiEx> mRhi;
 protected:

@@ -114,7 +114,7 @@ void main(){
 		QRhiVertexInputLayout inputLayout;
 		inputLayout.setBindings({
 			QRhiVertexInputBinding( 2 * sizeof(float) ),
-			QRhiVertexInputBinding( 2 * sizeof(float),QRhiVertexInputBinding::PerInstance),
+			QRhiVertexInputBinding( 2 * sizeof(float), QRhiVertexInputBinding::PerInstance),
 		});
 
 		inputLayout.setAttributes({
