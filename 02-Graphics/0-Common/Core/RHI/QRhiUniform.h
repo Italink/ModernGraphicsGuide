@@ -6,13 +6,17 @@
 
 class IRenderComponent;
 
-class QRhiUniform{
+class QRhiUniform : public QObject{
 public:
-	QRhiUniform(QSharedPointer<QRhiEx> inRhi);
-	void setDataFloat(QString name, float var);
-	void setDataVec2(QString name, QVector2D var);
-	void setDataVec3(QString name, QVector3D var);
-	void setDataVec4(QString name, QVector4D var);
+	QRhiUniform(QSharedPointer<QRhiEx> inRhi, QRhiShaderStage::Type inStage);
+	QRhiUniform* addFloat(QString name, float var);
+	QRhiUniform* addVec2(QString name, QVector2D var);
+	QRhiUniform* addVec3(QString name, QVector3D var);
+	QRhiUniform* addVec4(QString name, QVector4D var);
+	void setFloat(QString name, float var);
+	void setVec2(QString name, QVector2D var);
+	void setVec3(QString name, QVector3D var);
+	void setVec4(QString name, QVector4D var);
 	bool renameParma(const QString& src, const QString& dst);
 	void removeParam(const QString& name);
 	void create();
@@ -35,8 +39,7 @@ public:
 		QRhiEx::DirtySignal bNeedUpdate;
 	};
 protected:
-	Q_DISABLE_COPY(QRhiUniform)
-	QSharedPointer<ParamMemoryDesc> getOrCreateParam(QString name, ParamMemoryDesc::Type type);
+	void addParam(const QString& inName, ParamMemoryDesc::Type inType , QVariant inVar);
 	QString getVaildName(QString name);
 	void updateLayout();
 protected:
@@ -45,6 +48,7 @@ protected:
 	QHash<QString, QSharedPointer<ParamMemoryDesc>> mParamNameMap;
 	uint32_t mDataSize;
 	QScopedPointer<QRhiBuffer> mUniformBlock;
+	QRhiShaderStage::Type mStage;
 public:
 	QRhiEx::DirtySignal bNeedRecreate;
 };

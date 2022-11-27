@@ -9,7 +9,7 @@ QRhiGraphicsPipelineEx::QRhiGraphicsPipelineEx(IRenderComponent* inRenderCompone
 }
 
 void QRhiGraphicsPipelineEx::setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode) {
-	mShaderCodes[inStage].MainCode = inCode;
+	mStageInfos[inStage].MainCode = inCode;
 }
 
 QByteArray QRhiGraphicsPipelineEx::getInputFormatTypeName(QRhiVertexInputAttribute::Format inFormat) {
@@ -59,8 +59,11 @@ void QRhiGraphicsPipelineEx::setInputBindings(QVector<QRhiVertexInputBindingEx> 
 	mVertexInputLayout.setBindings(mInputBindings.begin(), mInputBindings.end());
 }
 
-void QRhiGraphicsPipelineEx::addUniformBlock(const QString& inName, QRhiShaderStage::Type inStage, QRhiUniform* inUniformBlock) {
-
+QRhiUniform* QRhiGraphicsPipelineEx::addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName) {
+	QSharedPointer<QRhiUniform> unifrom = QSharedPointer<QRhiUniform>::create(mRhi, inStage);
+	unifrom->setObjectName(inName);
+	mStageInfos[inStage].mUniformBlocks << unifrom;
+	return unifrom.get();
 }
 
 QVector<QRhiCommandBuffer::VertexInput> QRhiGraphicsPipelineEx::getVertexInputs() {
@@ -99,7 +102,7 @@ void QRhiGraphicsPipelineEx::create() {
 
 	recreateShaderBindings();
 	QVector<QRhiShaderStage> stages;
-	for (const auto& stage : mShaderCodes.asKeyValueRange()) {
+	for (const auto& stage : mStageInfos.asKeyValueRange()) {
 
 		QShader shader = QRhiEx::newShaderFromCode((QShader::Stage)stage.first, stage.second.VersionCode + stage.second.DefineCode + stage.second.MainCode);
 		stages << QRhiShaderStage(stage.first, shader);
@@ -115,7 +118,7 @@ void QRhiGraphicsPipelineEx::recreateShaderBindings() {
 		vertexInputCode = QString::asprintf("layout(location = %d) in %s %s;\n", input.location(), getInputFormatTypeName(input.format()).data(), input.mName.toLocal8Bit().data());
 	}
 	vertexInputCode += "out gl_PerVertex { vec4 gl_Position;}; \n";
-	mShaderCodes[QRhiShaderStage::Vertex].DefineCode = vertexInputCode.toLocal8Bit();
+	mStageInfos[QRhiShaderStage::Vertex].DefineCode = vertexInputCode.toLocal8Bit();
 
 	QString uniformCode;
 	QVector<QRhiShaderResourceBinding> bindings;
@@ -135,5 +138,5 @@ void QRhiGraphicsPipelineEx::recreateShaderBindings() {
 	//	uniformCode += QString("layout (binding = %1) uniform %2 %3;\n").arg(bindingOffset).arg("sampler2D").arg(texture->name);
 	//	bindingOffset++;
 	//}
-	mShaderCodes[QRhiShaderStage::Fragment].DefineCode = uniformCode.toLocal8Bit();
+	mStageInfos[QRhiShaderStage::Fragment].DefineCode = uniformCode.toLocal8Bit();
 }

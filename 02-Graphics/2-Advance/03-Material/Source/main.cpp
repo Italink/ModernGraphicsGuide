@@ -16,32 +16,34 @@ class QTriangleRenderComponent : public ISceneRenderComponent {
 private:
 	Q_PROPERTY_VAR(QColor, Color) = Qt::green;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	QScopedPointer<QRhiGraphicsPipelineEx> mMaterial;
+	QScopedPointer<QRhiGraphicsPipelineEx> mPipeline;
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 	}
 	void recreatePipeline() override {
-		mMaterial.reset(newGraphicsPipeline());
-		mMaterial->setInputBindings({
+		mPipeline.reset(newGraphicsPipeline());
+		mPipeline->addUniformBlock(QRhiShaderStage::Vertex, "UBO")
+			->addVec4("", QVector4D());
+		mPipeline->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(float) * 2)
 		});
-		mMaterial->setInputAttribute({
+		mPipeline->setInputAttribute({
 			QRhiVertexInputAttributeEx("Position",0,0,QRhiVertexInputAttributeEx::Float2,0)
 		});
-		mMaterial->setShaderMainCode(QRhiShaderStage::Vertex, R"(
+		mPipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
 			void main(){
-				gl_Position = UBO.Transform * vec4(Postion,0.0f,1.0f);
+				gl_Position = vec4(Position,0.0f,1.0f);
 			}
 		)");
 
-		mMaterial->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+		mPipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
 			void main(){
 				outFragColor = vec4(1);
 			}
 		)");
-		mMaterial->create();
+		mPipeline->create();
 	}
 
 	void uploadResource(QRhiResourceUpdateBatch* batch) override {
@@ -54,7 +56,7 @@ protected:
 		//batch->updateDynamicBuffer(mUniformBuffer.get(), sizeof(float) * 16, sizeof(QVector4D), &vec4);
 	}
 	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
-		cmdBuffer->setGraphicsPipeline(mMaterial->getGraphicsPipeline());
+		cmdBuffer->setGraphicsPipeline(mPipeline->getGraphicsPipeline());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
 		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), 0);

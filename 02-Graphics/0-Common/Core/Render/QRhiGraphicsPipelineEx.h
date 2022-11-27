@@ -31,7 +31,7 @@ public:
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
 	void setInputAttribute(QVector<QRhiVertexInputAttributeEx> inInputAttributes);
 	void setInputBindings(QVector<QRhiVertexInputBindingEx> inInputBindings);
-	void addUniformBlock(const QString& inName, QRhiShaderStage::Type inStage, QRhiUniform* inUniformBlock);
+	QRhiUniform* addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName);
 	QVector<QRhiCommandBuffer::VertexInput> getVertexInputs();
 	QRhiShaderResourceBindings* getShaderResourceBindings();
 	QRhiGraphicsPipeline* getGraphicsPipeline() { return mPipeline.get(); }

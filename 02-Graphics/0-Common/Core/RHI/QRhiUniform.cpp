@@ -2,37 +2,73 @@
 #include "Render/IRenderComponent.h"
 #include "Render/IRenderPass.h"
 
-QRhiUniform::QRhiUniform(QSharedPointer<QRhiEx> inRhi)
+QRhiUniform::QRhiUniform(QSharedPointer<QRhiEx> inRhi, QRhiShaderStage::Type inStage)
 	: mRhi(inRhi)
+	, mStage(inStage)
 {
 }
 
-void QRhiUniform::setDataFloat(QString name, float var) {
-	auto param = getOrCreateParam(name, ParamMemoryDesc::Float);
-	auto data = param.staticCast<ParamMemoryDesc>();
-	data->var = var;
-	data->bNeedUpdate.mark();
+QRhiUniform* QRhiUniform::addFloat(QString name, float var) {
+	addParam(name, ParamMemoryDesc::Float, var);
+	return this;
 }
 
-void QRhiUniform::setDataVec2(QString name, QVector2D var) {
-	auto param = getOrCreateParam(name, ParamMemoryDesc::Vec2);
-	auto data = param.staticCast<ParamMemoryDesc>();
-	data->var = var;
-	data->bNeedUpdate.mark();
+QRhiUniform* QRhiUniform::addVec2(QString name, QVector2D var) {
+	addParam(name, ParamMemoryDesc::Vec2, var);
+	return this;
 }
 
-void QRhiUniform::setDataVec3(QString name, QVector3D var) {
-	auto param = getOrCreateParam(name, ParamMemoryDesc::Vec3);
-	auto data = param.staticCast<ParamMemoryDesc>();
-	data->var = var;
-	data->bNeedUpdate.mark();
+QRhiUniform* QRhiUniform::addVec3(QString name, QVector3D var) {
+	addParam(name, ParamMemoryDesc::Vec3, var);
+	return this;
 }
 
-void QRhiUniform::setDataVec4(QString name, QVector4D var) {
-	auto param = getOrCreateParam(name, ParamMemoryDesc::Vec4);
-	auto data = param.staticCast<ParamMemoryDesc>();
-	data->var = var;
-	data->bNeedUpdate.mark();
+QRhiUniform* QRhiUniform::addVec4(QString name, QVector4D var) {
+	addParam(name, ParamMemoryDesc::Vec4, var);
+	return this;
+}
+
+void QRhiUniform::addParam(const QString& inName, ParamMemoryDesc::Type inType, QVariant inVar) {
+	QSharedPointer<QRhiUniform::ParamMemoryDesc> param = QSharedPointer<QRhiUniform::ParamMemoryDesc>::create();
+	param->name = getVaildName(inName);
+	param->type = inType;
+	param->var = inVar;
+	mDataList << param;
+	mParamNameMap[inName] = param;
+	param->bNeedUpdate.mark();
+	bNeedRecreate.mark();
+}
+
+void QRhiUniform::setFloat(QString name, float var) {
+	auto Iter = mParamNameMap.find(name);
+	if (Iter != mParamNameMap.end()) {
+		(*Iter)->var = var;
+		(*Iter)->bNeedUpdate.mark();
+	}
+}
+
+void QRhiUniform::setVec2(QString name, QVector2D var) {
+	auto Iter = mParamNameMap.find(name);
+	if (Iter != mParamNameMap.end()) {
+		(*Iter)->var = var;
+		(*Iter)->bNeedUpdate.mark();
+	}
+}
+
+void QRhiUniform::setVec3(QString name, QVector3D var) {
+	auto Iter = mParamNameMap.find(name);
+	if (Iter != mParamNameMap.end()) {
+		(*Iter)->var = var;
+		(*Iter)->bNeedUpdate.mark();
+	}
+}
+
+void QRhiUniform::setVec4(QString name, QVector4D var) {
+	auto Iter = mParamNameMap.find(name);
+	if (Iter != mParamNameMap.end()) {
+		(*Iter)->var = var;
+		(*Iter)->bNeedUpdate.mark();
+	}
 }
 
 void QRhiUniform::removeParam(const QString& name)
@@ -75,23 +111,6 @@ QString QRhiUniform::ParamMemoryDesc::getTypeName()
 		break;
 	}
 	return "";
-}
-
-QSharedPointer<QRhiUniform::ParamMemoryDesc> QRhiUniform::getOrCreateParam(QString name, ParamMemoryDesc::Type type) {
-	auto Iter = mParamNameMap.find(name);
-	if (Iter != mParamNameMap.end()) {
-		return *Iter;
-	}
-	else {
-		QSharedPointer<QRhiUniform::ParamMemoryDesc> param;
-		mDataList << QSharedPointer<QRhiUniform::ParamMemoryDesc>::create();
-		param = mDataList.back();
-		param->type = type;
-		param->name = getVaildName(name);
-		mParamNameMap[param->name] = param;
-		bNeedRecreate.mark();
-		return param;
-	}
 }
 
 QString QRhiUniform::getVaildName(QString name) {
