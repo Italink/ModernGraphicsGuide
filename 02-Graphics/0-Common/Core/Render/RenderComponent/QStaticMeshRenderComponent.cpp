@@ -3,8 +3,8 @@
 
 QStaticMeshRenderComponent* QStaticMeshRenderComponent::setupStaticMeshPath(QString inPath) {
 	mStaticMeshPath = inPath;
-	requestRecreateResource();
-	requestRecreatePipeline();
+	sigRecreatePipeline.request();
+	sigRecreateResource.request();
 	return this;
 }
 

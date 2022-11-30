@@ -76,8 +76,8 @@ QSkyboxRenderComponent* QSkyboxRenderComponent::setupSkyBoxImage(QImage inImage)
 	mSubImageList[4] = inImage.copy(QRect(QPoint(mCubeFaceSize.width(), mCubeFaceSize.width()), mCubeFaceSize));
 	mSubImageList[5] = inImage.copy(QRect(QPoint(3 * mCubeFaceSize.width(), mCubeFaceSize.width()), mCubeFaceSize));
 
-	requestRecreateResource();
-	requestRecreatePipeline();
+	sigRecreateResource.request();
+	sigRecreatePipeline.request();
 	return this;
 }
 

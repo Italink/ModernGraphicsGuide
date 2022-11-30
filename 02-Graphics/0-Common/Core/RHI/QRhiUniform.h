@@ -3,12 +3,13 @@
 
 #include <QVariant>
 #include "RHI/QRhiEx.h"
+#include "QList"
 
 class IRenderComponent;
 
 class QRhiUniform : public QObject{
 public:
-	QRhiUniform(QSharedPointer<QRhiEx> inRhi, QRhiShaderStage::Type inStage);
+	QRhiUniform(QRhiShaderStage::Type inStage);
 	QRhiUniform* addFloat(QString name, float var);
 	QRhiUniform* addVec2(QString name, QVector2D var);
 	QRhiUniform* addVec3(QString name, QVector3D var);
@@ -19,7 +20,7 @@ public:
 	void setVec4(QString name, QVector4D var);
 	bool renameParma(const QString& src, const QString& dst);
 	void removeParam(const QString& name);
-	void create();
+	void create(QRhiEx* inRhi);
 	void updateResource(QRhiResourceUpdateBatch* batch);
 	struct ParamMemoryDesc{
 		QString name;
@@ -36,20 +37,22 @@ public:
 			Mat4,
 		}type;
 		QString getTypeName();
-		QRhiEx::DirtySignal bNeedUpdate;
+		QRhiEx::Signal sigUpdateParam;
 	};
+	QRhiBuffer* getUniformBlock() const { return mUniformBlock.get(); }
+	bool isEmpty()const { return mDataList.isEmpty(); }
+	const QList<QSharedPointer<QRhiUniform::ParamMemoryDesc>>& getParamList() const { return mDataList; }
 protected:
 	void addParam(const QString& inName, ParamMemoryDesc::Type inType , QVariant inVar);
 	QString getVaildName(QString name);
 	void updateLayout();
 protected:
-	QSharedPointer<QRhiEx> mRhi;
 	QList<QSharedPointer<ParamMemoryDesc>> mDataList;
 	QHash<QString, QSharedPointer<ParamMemoryDesc>> mParamNameMap;
 	uint32_t mDataSize;
 	QScopedPointer<QRhiBuffer> mUniformBlock;
 	QRhiShaderStage::Type mStage;
 public:
-	QRhiEx::DirtySignal bNeedRecreate;
+	QRhiEx::Signal sigRecreateBuffer;
 };
 #endif // QRhiUniform_h_

@@ -25,9 +25,9 @@ public:
 	int mOffset = 0;
 };
 
-class QRhiGraphicsPipelineEx: public QObject{
+class QRhiGraphicsPipelineBuilder: public QObject{
 public:
-	QRhiGraphicsPipelineEx(IRenderComponent* inRenderComponent);
+	QRhiGraphicsPipelineBuilder(IRenderComponent* inRenderComponent);
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
 	void setInputAttribute(QVector<QRhiVertexInputAttributeEx> inInputAttributes);
 	void setInputBindings(QVector<QRhiVertexInputBindingEx> inInputBindings);

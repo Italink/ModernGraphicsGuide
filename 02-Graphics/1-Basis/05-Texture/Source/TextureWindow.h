@@ -14,11 +14,11 @@ static float VertexData[] = {
 class MyFirstTextureWindow : public QRhiWindow {
 public:
 	MyFirstTextureWindow(QRhiWindow::InitParams inInitParams):QRhiWindow(inInitParams) {
-		bNeedInit.mark();
+		sigInit.request();
 	}
 private:
-	QRhiEx::DirtySignal bNeedInit;
-	QRhiEx::DirtySignal bNeedSubmit;
+	QRhiEx::Signal sigInit;
+	QRhiEx::Signal sigSubmit;
 
 	QImage mImage;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
@@ -110,7 +110,7 @@ void main()
 		mPipeline->setRenderPassDescriptor(mSwapChainPassDesc.get());
 		mPipeline->create();
 
-		bNeedSubmit.mark();
+		sigSubmit.request();
 	}
 
 	void submitRhiData(QRhiResourceUpdateBatch* resourceUpdates) {
@@ -122,12 +122,12 @@ void main()
 		QRhiRenderTarget* currentRenderTarget = mSwapChain->currentFrameRenderTarget();
 		QRhiCommandBuffer* currentCmdBuffer = mSwapChain->currentFrameCommandBuffer();
 
-		if (bNeedInit.handle()) {
+		if (sigInit.receive()) {
 			initRhiResource();
 		}
 
 		QRhiResourceUpdateBatch* resourceUpdates = nullptr;
-		if (bNeedSubmit.handle()) {
+		if (sigSubmit.receive()) {
 			resourceUpdates = mRhi->nextResourceUpdateBatch();
 			submitRhiData(resourceUpdates);
 		}

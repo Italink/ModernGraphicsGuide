@@ -3,6 +3,7 @@
 #include "Render/RenderPass/QDefaultSceneRenderPass.h"
 #include "Render/RenderComponent/ISceneRenderComponent.h"
 #include "Core/QMetaDataDefine.h"
+#include "Render/QRhiGraphicsPipelineBuilder.h"
 
 static float VertexData[] = {
 	//position(xy)	
@@ -14,49 +15,48 @@ static float VertexData[] = {
 class QTriangleRenderComponent : public ISceneRenderComponent {
 	Q_OBJECT
 private:
-	Q_PROPERTY_VAR(QColor, Color) = Qt::green;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	QScopedPointer<QRhiGraphicsPipelineEx> mPipeline;
+	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*,mPipelineBuilder);
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 	}
 	void recreatePipeline() override {
-		mPipeline.reset(newGraphicsPipeline());
-		mPipeline->addUniformBlock(QRhiShaderStage::Vertex, "UBO")
-			->addVec4("", QVector4D());
-		mPipeline->setInputBindings({
+		mPipelineBuilder = new QRhiGraphicsPipelineBuilder;
+		mPipelineBuilder->setParent(this);
+		mPipelineBuilder->addUniformBlock(QRhiShaderStage::Fragment, "Transform")
+			->addVec4("MVP", QVector4D(1,0.0,0,1));
+
+		mPipelineBuilder->addUniformBlock(QRhiShaderStage::Fragment, "Material")
+			->addVec4("Color", QVector4D(1, 0.0, 0, 1));
+
+		mPipelineBuilder->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(float) * 2)
 		});
-		mPipeline->setInputAttribute({
+		mPipelineBuilder->setInputAttribute({
 			QRhiVertexInputAttributeEx("Position",0,0,QRhiVertexInputAttributeEx::Float2,0)
 		});
-		mPipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
-			void main(){
-				gl_Position = vec4(Position,0.0f,1.0f);
-			}
-		)");
-
-		mPipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
-			void main(){
-				outFragColor = vec4(1);
-			}
-		)");
-		mPipeline->create();
+		mPipelineBuilder->setShaderMainCode(QRhiShaderStage::Vertex, R"(
+void main(){
+	gl_Position = vec4(Position,0.0f,1.0f);
+}
+)");
+		mPipelineBuilder->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+void main(){
+	FragColor = Material.Color;
+}
+)");
+		mPipelineBuilder->create(this);
 	}
-
 	void uploadResource(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
 	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
-		//QMatrix4x4 mat = calculateMatrixMVP();
-		//batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(float) * 16, &mat);
-		//QVector4D vec4(Color.redF(), Color.greenF(), Color.blueF(), Color.alphaF());
-		//batch->updateDynamicBuffer(mUniformBuffer.get(), sizeof(float) * 16, sizeof(QVector4D), &vec4);
+		mPipelineBuilder->update(batch);
 	}
 	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
-		cmdBuffer->setGraphicsPipeline(mPipeline->getGraphicsPipeline());
+		cmdBuffer->setGraphicsPipeline(mPipelineBuilder->getGraphicsPipeline());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
 		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), 0);

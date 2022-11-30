@@ -2,9 +2,8 @@
 #include "Render/IRenderComponent.h"
 #include "Render/IRenderPass.h"
 
-QRhiUniform::QRhiUniform(QSharedPointer<QRhiEx> inRhi, QRhiShaderStage::Type inStage)
-	: mRhi(inRhi)
-	, mStage(inStage)
+QRhiUniform::QRhiUniform( QRhiShaderStage::Type inStage)
+	: mStage(inStage)
 {
 }
 
@@ -35,15 +34,15 @@ void QRhiUniform::addParam(const QString& inName, ParamMemoryDesc::Type inType, 
 	param->var = inVar;
 	mDataList << param;
 	mParamNameMap[inName] = param;
-	param->bNeedUpdate.mark();
-	bNeedRecreate.mark();
+	param->sigUpdateParam.request();
+	sigRecreateBuffer.request();
 }
 
 void QRhiUniform::setFloat(QString name, float var) {
 	auto Iter = mParamNameMap.find(name);
 	if (Iter != mParamNameMap.end()) {
 		(*Iter)->var = var;
-		(*Iter)->bNeedUpdate.mark();
+		(*Iter)->sigUpdateParam.request();
 	}
 }
 
@@ -51,7 +50,7 @@ void QRhiUniform::setVec2(QString name, QVector2D var) {
 	auto Iter = mParamNameMap.find(name);
 	if (Iter != mParamNameMap.end()) {
 		(*Iter)->var = var;
-		(*Iter)->bNeedUpdate.mark();
+		(*Iter)->sigUpdateParam.request();
 	}
 }
 
@@ -59,7 +58,7 @@ void QRhiUniform::setVec3(QString name, QVector3D var) {
 	auto Iter = mParamNameMap.find(name);
 	if (Iter != mParamNameMap.end()) {
 		(*Iter)->var = var;
-		(*Iter)->bNeedUpdate.mark();
+		(*Iter)->sigUpdateParam.request();
 	}
 }
 
@@ -67,7 +66,7 @@ void QRhiUniform::setVec4(QString name, QVector4D var) {
 	auto Iter = mParamNameMap.find(name);
 	if (Iter != mParamNameMap.end()) {
 		(*Iter)->var = var;
-		(*Iter)->bNeedUpdate.mark();
+		(*Iter)->sigUpdateParam.request();
 	}
 }
 
@@ -77,7 +76,7 @@ void QRhiUniform::removeParam(const QString& name)
 	if (iter != mParamNameMap.end()) {
 		mDataList.removeOne(*iter);
 		mParamNameMap.remove(name);
-		bNeedRecreate.mark();
+		sigRecreateBuffer.request();
 	}
 }
 
@@ -87,7 +86,7 @@ bool QRhiUniform::renameParma(const QString& src, const QString& dst)
 		auto param = mParamNameMap.take(src);
 		param->name = dst;
 		mParamNameMap[dst] = param;
-		bNeedRecreate.mark();
+		sigRecreateBuffer.request();
 		return true;
 	}
 	return false;
@@ -167,23 +166,23 @@ void QRhiUniform::updateLayout() {
 		data->offsetInByte = align(mDataSize,getAlign(data->type));
 		data->sizeInByte = getByteSize(data->type);
 		data->sizeInByteAligned = data->sizeInByte;	//16字节对齐
-		data->bNeedUpdate.mark();
+		data->sigUpdateParam.request();
 		mDataSize = data->offsetInByte+data->sizeInByteAligned;
 	}
 }
 
-void QRhiUniform::create() {
+void QRhiUniform::create(QRhiEx* inRhi) {
 	updateLayout();
-	mUniformBlock.reset(mRhi->newBuffer(QRhiBuffer::Type::Dynamic, QRhiBuffer::UniformBuffer,mDataSize));
+	mUniformBlock.reset(inRhi->newBuffer(QRhiBuffer::Type::Dynamic, QRhiBuffer::UniformBuffer, mDataSize));
 	mUniformBlock->create();
 	for (auto& dataParam : mDataList) {
-		dataParam->bNeedUpdate.mark();
+		dataParam->sigUpdateParam.request();
 	}
 }
 
 void QRhiUniform::updateResource(QRhiResourceUpdateBatch* batch) {
 	for (auto& dataParam : mDataList) {
-		if (dataParam->bNeedUpdate.handle()) {
+		if (dataParam->sigUpdateParam.receive()) {
 			batch->updateDynamicBuffer(mUniformBlock.get(), dataParam->offsetInByte, dataParam->sizeInByte, dataParam->var.data());
 		}
 	}

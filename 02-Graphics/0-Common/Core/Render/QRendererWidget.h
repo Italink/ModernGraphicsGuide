@@ -12,6 +12,8 @@ class QWindowRenderer;
 
 class QRendererWidget :public QWidget {
 public:
+	QRhiEx::Signal sigRecompileRenderer;
+public:
 	QRendererWidget(QRhiWindow::InitParams inInitParams);
 	void setupCamera();
 	void setupDetailWidget();
@@ -24,8 +26,6 @@ protected:
 	QWindowRenderer* mRenderer = nullptr;
 	QCamera* mCamera;
 	QSharedPointer<QFrameGraph> mFrameGraph;
-
-	QRhiEx::DirtySignal bNeedRecompileRenderer;
 };
 
 #endif // QRendererWidget_h__

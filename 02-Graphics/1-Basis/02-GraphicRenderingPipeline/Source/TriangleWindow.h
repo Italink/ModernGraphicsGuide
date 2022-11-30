@@ -12,27 +12,27 @@ static float VertexData[] = {
 
 class TriangleWindow : public QRhiWindow {
 private:
-	QRhiEx::DirtySignal bNeedInit;
-	QRhiEx::DirtySignal bNeedSubmit;
+	QRhiEx::Signal sigInit;
+	QRhiEx::Signal sigSubmit;
 
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 public:
 	TriangleWindow(QRhiWindow::InitParams inInitParams) :QRhiWindow(inInitParams) {
-		bNeedInit.mark();
-		bNeedSubmit.mark();
+		sigInit.request();
+		sigSubmit.request();
 	}
 protected:
 	virtual void onRenderTick() override {
 		QRhiRenderTarget* currentRenderTarget = mSwapChain->currentFrameRenderTarget();
 		QRhiCommandBuffer* currentCmdBuffer = mSwapChain->currentFrameCommandBuffer();
 
-		if (bNeedInit.handle()) {
+		if (sigInit.receive()) {
 			initRhiResource();
 		}
 		QRhiResourceUpdateBatch* resourceUpdates = nullptr;
-		if (bNeedSubmit.handle()) {
+		if (sigSubmit.receive()) {
 			resourceUpdates = mRhi->nextResourceUpdateBatch();
 			submitRhiData(resourceUpdates);
 		}

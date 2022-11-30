@@ -2,12 +2,14 @@
 #define IRenderComponent_h__
 
 #include "RHI\QRhiEx.h"
-#include "QRhiGraphicsPipelineEx.h"
 
 class ISceneRenderPass;
 
 class IRenderComponent: public QObject {
 	friend class ISceneRenderPass;
+public:
+	QRhiEx::Signal sigRecreateResource;
+	QRhiEx::Signal sigRecreatePipeline;
 public:
 	virtual bool isVaild() { return true; }
 	virtual void recreateResource() {}
@@ -18,17 +20,8 @@ public:
 	virtual void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
 	ISceneRenderPass* sceneRenderPass() { return mScreenRenderPass; }
 
-	void requestRecreateResource(){ bNeedRecreateResource.mark(); }
-	void requestRecreatePipeline(){ bNeedRecreatePipeline.mark(); }
-protected:
-	QRhiGraphicsPipelineEx* newGraphicsPipeline() {
-		return new QRhiGraphicsPipelineEx(this);
-	}
 protected:
 	QSharedPointer<QRhiEx> mRhi;
-protected:
-	QRhiEx::DirtySignal bNeedRecreateResource;
-	QRhiEx::DirtySignal bNeedRecreatePipeline;
 	ISceneRenderPass* mScreenRenderPass = nullptr;
 };
 

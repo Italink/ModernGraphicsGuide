@@ -19,15 +19,16 @@
 #include "QVulkanInstance"
 #include <QtGui/private/qrhinull_p.h>
 
-bool QRhiEx::DirtySignal::handle() 
+void QRhiEx::Signal::request() {
+	bDirty = true;
+}
+
+
+bool QRhiEx::Signal::receive()
 {
 	bool var = bDirty;
 	bDirty = false;
 	return var;
-}
-
-void QRhiEx::DirtySignal::mark() {
-	bDirty = true;
 }
 
 QSharedPointer<QRhiEx> QRhiEx::newRhiEx(QRhi::Implementation inBackend /*= QRhi::Vulkan*/, QRhi::Flags inFlags /*= QRhi::Flag()*/, QWindow* inWindow /*= nullptr*/) {

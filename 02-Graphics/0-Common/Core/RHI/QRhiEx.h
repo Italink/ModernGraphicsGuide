@@ -12,11 +12,11 @@ public:
 
 	static QShader newShaderFromQSBFile(const char* filename);
 public:
-	class DirtySignal {
+	class Signal {
 	public:
-		DirtySignal() {};
-		void mark();
-		bool handle();
+		Signal() {};
+		void request();
+		bool receive();
 	private:
 		bool bDirty = false;
 	};

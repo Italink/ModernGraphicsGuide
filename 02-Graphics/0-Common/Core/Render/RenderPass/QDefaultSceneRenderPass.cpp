@@ -13,7 +13,7 @@ QRhiRenderPassDescriptor* QDefaultSceneRenderPass::getRenderPassDescriptor() {
 }
 
 void QDefaultSceneRenderPass::compile() {
-
+	registerOutputTexture(0, "BaseColor", nullptr);
 }
 
 void QDefaultSceneRenderPass::resize(const QSize& size) {
@@ -29,10 +29,11 @@ void QDefaultSceneRenderPass::render(QRhiCommandBuffer* cmdBuffer) {
 			item->recreateResource();
 			item->uploadResource(resUpdateBatch);
 		}
-		item->updateResourcePrePass(resUpdateBatch);
 		if (needRecreatePipeline(item)) {
 			item->recreatePipeline();
 		}
+		item->updateResourcePrePass(resUpdateBatch);
+
 	}
 	for (auto& item : mRenderComponents) {
 		if (!item->isVaild())
@@ -42,7 +43,7 @@ void QDefaultSceneRenderPass::render(QRhiCommandBuffer* cmdBuffer) {
 	cmdBuffer->beginPass(mRenderer->renderTaget(), QColor::fromRgbF(0.0f, 0.0f, 0.0f, 1.0f), { 1.0f, 0 }, resUpdateBatch);
 	QRhiViewport viewport(0, 0, mRenderer->renderTaget()->pixelSize().width(), mRenderer->renderTaget()->pixelSize().height());
 	for (auto& item : mRenderComponents) {
-		if (!item->isVaild())
+		if (!item->isVaild()|| needRecreateResource(item)|| needRecreatePipeline(item))
 			continue;
 		if (needRecreatePipeline(item)) {
 			item->recreatePipeline();

@@ -34,6 +34,12 @@ public:
 		return mOutputTextures;
 	}
 
+	void registerOutputTexture(int slot, const QByteArray& name, QRhiTexture* texture) {
+		if(texture)
+			texture->setName(name);
+		mOutputTextures[slot] = texture;
+	}
+
 	IRenderPassBase* setupInputTexture(int inInputSlot,const QString& inPassName, int inPassSlot) {
 		mInputTextures[inInputSlot] = { inPassName ,inPassSlot,nullptr};
 	}
@@ -82,17 +88,17 @@ public:
 		inRenderComponent->setParent(this);
 		inRenderComponent->mRhi = mRhi;
 		inRenderComponent->mScreenRenderPass = this;
-		inRenderComponent->requestRecreateResource();
-		inRenderComponent->requestRecreatePipeline();
+		inRenderComponent->sigRecreateResource.request();
+		inRenderComponent->sigRecreatePipeline.request();
 		mRenderComponents.push_back(inRenderComponent);
 		return this;
 	}
 protected:
 	bool needRecreateResource(IRenderComponent* inComponent) {
-		return inComponent->bNeedRecreateResource.handle();
+		return inComponent->sigRecreateResource.receive();
 	}
 	bool needRecreatePipeline(IRenderComponent* inComponent) {
-		return inComponent->bNeedRecreatePipeline.handle();
+		return inComponent->sigRecreatePipeline.receive();
 	}
 protected:
 	QVector<IRenderComponent*> mRenderComponents;

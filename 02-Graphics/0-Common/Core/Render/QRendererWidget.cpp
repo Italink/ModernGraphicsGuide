@@ -26,7 +26,7 @@ QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
 	, mCamera(new QCamera)
 {
 	mRhiWindow->setTickFunctor([this]() {
-		if (bNeedRecompileRenderer.handle()) {
+		if (sigRecompileRenderer.receive()) {
 			if (mRenderer == nullptr) {
 				mRenderer = new QWindowRenderer(mRhiWindow);
 				mRenderer->setCamera(mCamera);
@@ -67,5 +67,5 @@ void QRendererWidget::setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph) {
 }
 
 void QRendererWidget::requestCompileRenderer() {
-	bNeedRecompileRenderer.mark();
+	sigRecompileRenderer.request();
 }

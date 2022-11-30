@@ -1,5 +1,5 @@
-#ifndef QRhiGraphicsPipelineEx_h__
-#define QRhiGraphicsPipelineEx_h__
+#ifndef QRhiGraphicsPipelineBuilder_h__
+#define QRhiGraphicsPipelineBuilder_h__
 
 #include "RHI\QRhiUniform.h"
 #include "QObject"
@@ -25,23 +25,26 @@ public:
 	int mOffset = 0;
 };
 
-class QRhiGraphicsPipelineEx: public QObject{
+class QRhiGraphicsPipelineBuilder: public QObject{
 public:
-	QRhiGraphicsPipelineEx(IRenderComponent* inRenderComponent);
+	QRhiEx::Signal sigRebuild;
+public:
+	QRhiGraphicsPipelineBuilder(){}
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
 	void setInputAttribute(QVector<QRhiVertexInputAttributeEx> inInputAttributes);
 	void setInputBindings(QVector<QRhiVertexInputBindingEx> inInputBindings);
 	QRhiUniform* addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName);
+	QRhiUniform* getUniformBlock(const QString& inName);
 	QVector<QRhiCommandBuffer::VertexInput> getVertexInputs();
 	QRhiShaderResourceBindings* getShaderResourceBindings();
 	QRhiGraphicsPipeline* getGraphicsPipeline() { return mPipeline.get(); }
-	void create();
+	void create(IRenderComponent* inRenderComponent);
+	void update(QRhiResourceUpdateBatch* batch);
 	QByteArray getInputFormatTypeName(QRhiVertexInputAttribute::Format inFormat);
+	QByteArray getOutputFormatTypeName(QRhiTexture::Format inFormat);
 protected:
-	void recreateShaderBindings();
+	void recreateShaderBindings(IRenderComponent* inRenderComponent, QRhiEx *inRhi);
 private:
-	IRenderComponent* mRenderComponent;
-	QSharedPointer<QRhiEx> mRhi;
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 	QRhiGraphicsPipeline::Topology mTopology = QRhiGraphicsPipeline::Triangles;
 	QRhiGraphicsPipeline::CullMode mCullMode = QRhiGraphicsPipeline::None;
@@ -63,7 +66,6 @@ private:
 	QRhiVertexInputLayout mVertexInputLayout;
 	QVector<QRhiVertexInputAttributeEx> mInputAttributes;
 	QVector<QRhiVertexInputBindingEx> mInputBindings;
-
 	struct StageInfo {
 		QVector<QSharedPointer<QRhiUniform>> mUniformBlocks;
 		QByteArray VersionCode = "#version 440\n";
@@ -72,6 +74,7 @@ private:
 	};
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QHash<QRhiShaderStage::Type, StageInfo> mStageInfos;
+	QHash<QString, QRhiUniform*> mUniformMap;
 };
 
-#endif // QRhiGraphicsPipelineEx_h__
+#endif // QRhiGraphicsPipelineBuilder_h__
