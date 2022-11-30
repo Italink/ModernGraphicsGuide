@@ -3,6 +3,7 @@
 
 #include "RHI\QRhiUniform.h"
 #include "QObject"
+#include "QDetailWidgetMacros.h"
 
 class QRhiVertexInputAttributeEx : public QRhiVertexInputAttribute {
 public:
@@ -26,8 +27,65 @@ public:
 };
 
 class QRhiGraphicsPipelineBuilder: public QObject{
+	Q_OBJECT
+		Q_PROPERTY(QRhiGraphicsPipeline::Topology Topology READ getTopology WRITE setTopology)
+		Q_PROPERTY(QRhiGraphicsPipeline::PolygonMode PolygonMode READ getPolygonMode WRITE setPolygonMode)
+		Q_PROPERTY(QRhiGraphicsPipeline::CullMode CullMode READ getCullMode WRITE setCullMode)
+		Q_PROPERTY(QRhiGraphicsPipeline::FrontFace FrontFace READ getFrontFace WRITE setFrontFace)
+		Q_PROPERTY(float LineWidth READ getLineWidth WRITE setLineWidth)
+
+		Q_PROPERTY(bool DepthTest READ isDepthTestEnabled WRITE setDepthTest)
+		Q_PROPERTY(bool DepthWrite READ isDepthWriteEnabled WRITE setDepthWrite)
+		Q_PROPERTY(QRhiGraphicsPipeline::CompareOp DepthTestOp READ getDepthTestOp WRITE setDepthTestOp)
+
+		Q_PROPERTY(bool StencilTest READ isStencilTestEnabled WRITE setStencilTest)
+		Q_PROPERTY(QRhiGraphicsPipeline::StencilOpState StencilFrontOp READ getStencilFrontOp WRITE setStencilFrontOp)
+		Q_PROPERTY(QRhiGraphicsPipeline::StencilOpState StencilBackOp READ getStencilBackOp WRITE setStencilBackOp)
+		Q_PROPERTY(quint32 StencilReadMask READ getStencilReadMask WRITE setStencilReadMask)
+		Q_PROPERTY(quint32 StencilWriteMask READ getStencilWriteMask WRITE setStencilWriteMask)
+		Q_PROPERTY(QMap<QString, QRhiUniform*> UniformBlocks READ getUniformBlocks WRITE setUniformBlocks)
+
+		Q_META_BEGIN(QRhiGraphicsPipelineBuilder)
+			Q_META_P_MAP_FIXED_KEY(UniformBlocks,true)
+			Q_META_P_MAP_FIXED_SIZE(UniformBlocks,true)
+			Q_META_LOCAL_ENUM(Topology, QRhiGraphicsPipeline::Points, QRhiGraphicsPipeline::Lines, QRhiGraphicsPipeline::LineStrip, QRhiGraphicsPipeline::Triangles, QRhiGraphicsPipeline::TriangleStrip, QRhiGraphicsPipeline::TriangleFan, QRhiGraphicsPipeline::Patches)
+			Q_META_LOCAL_ENUM(PolygonMode, QRhiGraphicsPipeline::PolygonMode::Fill, QRhiGraphicsPipeline::PolygonMode::Line)
+			Q_META_LOCAL_ENUM(CullMode, QRhiGraphicsPipeline::CullMode::None,QRhiGraphicsPipeline::CullMode::Front, QRhiGraphicsPipeline::CullMode::Back)
+			Q_META_LOCAL_ENUM(FrontFace, QRhiGraphicsPipeline::FrontFace::CCW, QRhiGraphicsPipeline::FrontFace::CW)
+			Q_META_LOCAL_ENUM(CompareOp, QRhiGraphicsPipeline::CompareOp::Never,  QRhiGraphicsPipeline::CompareOp::Less, QRhiGraphicsPipeline::CompareOp::Equal, QRhiGraphicsPipeline::CompareOp::LessOrEqual, QRhiGraphicsPipeline::CompareOp::Greater, QRhiGraphicsPipeline::CompareOp::NotEqual, QRhiGraphicsPipeline::CompareOp::GreaterOrEqual,QRhiGraphicsPipeline::CompareOp::Always)
+		Q_META_END()
 public:
+
 	QRhiEx::Signal sigRebuild;
+
+	QRhiGraphicsPipeline::Topology getTopology() const { return mTopology; }
+	void setTopology(QRhiGraphicsPipeline::Topology val) {mTopology = val;  sigRebuild.request();}
+	QRhiGraphicsPipeline::CullMode getCullMode() const { return mCullMode; }
+	void setCullMode(QRhiGraphicsPipeline::CullMode val) { mCullMode = val; sigRebuild.request(); }
+	QRhiGraphicsPipeline::FrontFace getFrontFace() const { return mFrontFace; }
+	void setFrontFace(QRhiGraphicsPipeline::FrontFace val) { mFrontFace = val; sigRebuild.request(); }
+	bool isDepthTestEnabled() const { return bEnableDepthTest; }
+	void setDepthTest(bool val) { bEnableDepthTest = val; sigRebuild.request(); }
+	bool isDepthWriteEnabled() const { return bEnableDepthWrite; }
+	void setDepthWrite(bool val) { bEnableDepthWrite = val; sigRebuild.request();  }
+	QRhiGraphicsPipeline::CompareOp getDepthTestOp() const { return mDepthTestOp; }
+	void setDepthTestOp(QRhiGraphicsPipeline::CompareOp val) { mDepthTestOp = val; sigRebuild.request();  }
+	bool isStencilTestEnabled() const { return bEnableStencilTest; }
+	void setStencilTest(bool val) { bEnableStencilTest = val;  sigRebuild.request();  }
+	QRhiGraphicsPipeline::StencilOpState getStencilFrontOp() const { return mStencilFrontOp; }
+	void setStencilFrontOp(QRhiGraphicsPipeline::StencilOpState val) { mStencilFrontOp = val; sigRebuild.request();  }
+	QRhiGraphicsPipeline::StencilOpState getStencilBackOp() const { return mStencilBackOp; }
+	void setStencilBackOp(QRhiGraphicsPipeline::StencilOpState val) { mStencilBackOp = val; sigRebuild.request();  }
+	quint32 getStencilReadMask() const { return mStencilReadMask; }
+	void setStencilReadMask(quint32 val) { mStencilReadMask = val;  sigRebuild.request(); }
+	quint32 getStencilWriteMask() const { return mStencilWriteMask; }
+	void setStencilWriteMask(quint32 val) { mStencilWriteMask = val; sigRebuild.request();  }
+	float getLineWidth() const { return mLineWidth; }
+	void setLineWidth(float val) { mLineWidth = val; sigRebuild.request();  }
+	QRhiGraphicsPipeline::PolygonMode getPolygonMode() const { return mPolygonMode; }
+	void setPolygonMode(QRhiGraphicsPipeline::PolygonMode val) { mPolygonMode = val; sigRebuild.request();  }
+	QMap<QString, QRhiUniform*> getUniformBlocks() { return mUniformMap; }
+	void setUniformBlocks(QMap<QString, QRhiUniform*>) {}
 public:
 	QRhiGraphicsPipelineBuilder(){}
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
@@ -47,6 +105,7 @@ protected:
 private:
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 	QRhiGraphicsPipeline::Topology mTopology = QRhiGraphicsPipeline::Triangles;
+	QRhiGraphicsPipeline::PolygonMode mPolygonMode = QRhiGraphicsPipeline::Fill;
 	QRhiGraphicsPipeline::CullMode mCullMode = QRhiGraphicsPipeline::None;
 	QRhiGraphicsPipeline::FrontFace mFrontFace = QRhiGraphicsPipeline::CCW;
 	QVector<QRhiGraphicsPipeline::TargetBlend> mBlendStates;
@@ -62,7 +121,6 @@ private:
 	int mDepthBias = 0;
 	float mSlopeScaledDepthBias = 0.0f;
 	int mPatchControlPointCount = 3;
-	QRhiGraphicsPipeline::PolygonMode mPolygonMode = QRhiGraphicsPipeline::Fill;
 	QRhiVertexInputLayout mVertexInputLayout;
 	QVector<QRhiVertexInputAttributeEx> mInputAttributes;
 	QVector<QRhiVertexInputBindingEx> mInputBindings;
@@ -74,7 +132,7 @@ private:
 	};
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QHash<QRhiShaderStage::Type, StageInfo> mStageInfos;
-	QHash<QString, QRhiUniform*> mUniformMap;
+	QMap<QString, QRhiUniform*> mUniformMap;
 };
 
 #endif // QRhiGraphicsPipelineBuilder_h__

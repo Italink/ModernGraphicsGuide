@@ -11,12 +11,15 @@ public:
 	static QShader newShaderFromCode(QShader::Stage stage, const char* code);
 
 	static QShader newShaderFromQSBFile(const char* filename);
+
+	static void globalInitialize();
 public:
 	class Signal {
 	public:
 		Signal() {};
 		void request();
 		bool receive();
+		bool peek();
 	private:
 		bool bDirty = false;
 	};

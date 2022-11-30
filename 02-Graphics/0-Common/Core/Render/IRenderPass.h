@@ -94,13 +94,6 @@ public:
 		return this;
 	}
 protected:
-	bool needRecreateResource(IRenderComponent* inComponent) {
-		return inComponent->sigRecreateResource.receive();
-	}
-	bool needRecreatePipeline(IRenderComponent* inComponent) {
-		return inComponent->sigRecreatePipeline.receive();
-	}
-protected:
 	QVector<IRenderComponent*> mRenderComponents;
 };
 

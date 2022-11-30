@@ -16,47 +16,50 @@ class QTriangleRenderComponent : public ISceneRenderComponent {
 	Q_OBJECT
 private:
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*,mPipelineBuilder);
+	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*,Pipeline);
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
-	}
-	void recreatePipeline() override {
-		mPipelineBuilder = new QRhiGraphicsPipelineBuilder;
-		mPipelineBuilder->setParent(this);
-		mPipelineBuilder->addUniformBlock(QRhiShaderStage::Fragment, "Transform")
-			->addVec4("MVP", QVector4D(1,0.0,0,1));
+		Pipeline = new QRhiGraphicsPipelineBuilder;
+		Pipeline->setParent(this);
+		Pipeline->addUniformBlock(QRhiShaderStage::Fragment, "Transform")
+			->addVec4("MVP", QVector4D(1, 0.0, 0, 1));
 
-		mPipelineBuilder->addUniformBlock(QRhiShaderStage::Fragment, "Material")
+		Pipeline->addUniformBlock(QRhiShaderStage::Fragment, "Material")
 			->addVec4("Color", QVector4D(1, 0.0, 0, 1));
 
-		mPipelineBuilder->setInputBindings({
+		Pipeline->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(float) * 2)
-		});
-		mPipelineBuilder->setInputAttribute({
+			});
+		Pipeline->setInputAttribute({
 			QRhiVertexInputAttributeEx("Position",0,0,QRhiVertexInputAttributeEx::Float2,0)
-		});
-		mPipelineBuilder->setShaderMainCode(QRhiShaderStage::Vertex, R"(
+			});
+		Pipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
 void main(){
 	gl_Position = vec4(Position,0.0f,1.0f);
 }
 )");
-		mPipelineBuilder->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+		Pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
 void main(){
 	FragColor = Material.Color;
 }
 )");
-		mPipelineBuilder->create(this);
+	}
+	void recreatePipeline() override {
+		Pipeline->create(this);
 	}
 	void uploadResource(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
 	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
-		mPipelineBuilder->update(batch);
+		Pipeline->update(batch);
+		if (Pipeline->sigRebuild.receive()) {
+			sigRecreatePipeline.request();
+		}
 	}
 	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
-		cmdBuffer->setGraphicsPipeline(mPipelineBuilder->getGraphicsPipeline());
+		cmdBuffer->setGraphicsPipeline(Pipeline->getGraphicsPipeline());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
 		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), 0);

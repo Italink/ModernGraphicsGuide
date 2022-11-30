@@ -18,6 +18,8 @@
 
 #include "QVulkanInstance"
 #include <QtGui/private/qrhinull_p.h>
+#include "Customization\QDetailWidgetManager.h"
+#include "DetailCustomization\QInstacneDetail_QRhiUniformBlock.h"
 
 void QRhiEx::Signal::request() {
 	bDirty = true;
@@ -31,7 +33,17 @@ bool QRhiEx::Signal::receive()
 	return var;
 }
 
+bool QRhiEx::Signal::peek() {
+	return bDirty;
+}
+
 QSharedPointer<QRhiEx> QRhiEx::newRhiEx(QRhi::Implementation inBackend /*= QRhi::Vulkan*/, QRhi::Flags inFlags /*= QRhi::Flag()*/, QWindow* inWindow /*= nullptr*/) {
+	static bool bIsInitialize = false;
+	if (!bIsInitialize) {
+		globalInitialize();
+		bIsInitialize = true;
+	}
+	
 	QSharedPointer<QRhiEx> mRhi;
 	if (inBackend == QRhi::Null) {
 		QRhiNullInitParams params;
@@ -111,5 +123,9 @@ QShader QRhiEx::newShaderFromQSBFile(const char* filename) {
 	if (f.open(QIODevice::ReadOnly))
 		return QShader::fromSerialized(f.readAll());
 	return QShader();
+}
+
+void QRhiEx::globalInitialize() {
+	QDetailWidgetManager::instance()->RegisterInstanceFilter<QInstacneDetail_QRhiUniformBlock>();
 }
 

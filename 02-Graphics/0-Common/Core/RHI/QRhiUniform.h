@@ -8,6 +8,7 @@
 class IRenderComponent;
 
 class QRhiUniform : public QObject{
+	Q_OBJECT
 public:
 	QRhiUniform(QRhiShaderStage::Type inStage);
 	QRhiUniform* addFloat(QString name, float var);
