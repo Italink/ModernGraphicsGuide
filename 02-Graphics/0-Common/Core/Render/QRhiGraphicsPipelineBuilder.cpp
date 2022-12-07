@@ -40,13 +40,14 @@ QByteArray QRhiGraphicsPipelineBuilder::getInputFormatTypeName(QRhiVertexInputAt
 	default:
 		break;
 	}
+	return "unknown";
 }
 
 QByteArray QRhiGraphicsPipelineBuilder::getOutputFormatTypeName(QRhiTexture::Format inFormat) {
 	switch (inFormat) {
 	case QRhiTexture::RGBA8:
 	case QRhiTexture::BGRA8:
-	case QRhiTexture::RGBA16F:	
+	case QRhiTexture::RGBA16F:
 	case QRhiTexture::RGBA32F:
 	case QRhiTexture::RGB10A2:
 		return "vec4";
@@ -73,15 +74,15 @@ void QRhiGraphicsPipelineBuilder::setInputBindings(QVector<QRhiVertexInputBindin
 	mVertexInputLayout.setBindings(mInputBindings.begin(), mInputBindings.end());
 }
 
-QRhiUniform* QRhiGraphicsPipelineBuilder::addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName) {
-	QSharedPointer<QRhiUniform> unifrom = QSharedPointer<QRhiUniform>::create(inStage);
+QRhiUniformBlock* QRhiGraphicsPipelineBuilder::addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName) {
+	QSharedPointer<QRhiUniformBlock> unifrom = QSharedPointer<QRhiUniformBlock>::create(inStage, this);
 	unifrom->setObjectName(inName);
 	mStageInfos[inStage].mUniformBlocks << unifrom;
 	mUniformMap[inName] = unifrom.get();
 	return unifrom.get();
 }
 
-QRhiUniform* QRhiGraphicsPipelineBuilder::getUniformBlock(const QString& inName) {
+QRhiUniformBlock* QRhiGraphicsPipelineBuilder::getUniformBlock(const QString& inName) {
 	return mUniformMap.value(inName);
 }
 
@@ -121,7 +122,7 @@ void QRhiGraphicsPipelineBuilder::create(IRenderComponent* inRenderComponent) {
 	mPipeline->setVertexInputLayout(mVertexInputLayout);
 	mPipeline->setRenderPassDescriptor(inRenderComponent->sceneRenderPass()->getRenderPassDescriptor());
 
-	recreateShaderBindings(inRenderComponent,rhi);
+	recreateShaderBindings(inRenderComponent, rhi);
 
 	QVector<QRhiShaderStage> stages;
 	for (const auto& stage : mStageInfos.asKeyValueRange()) {
@@ -142,7 +143,6 @@ void QRhiGraphicsPipelineBuilder::update(QRhiResourceUpdateBatch* batch) {
 	for (const auto& stage : mStageInfos) {
 		for (const auto& uniformBlock : stage.mUniformBlocks) {
 			if (uniformBlock->sigRecreateBuffer.receive()) {
-
 			}
 			uniformBlock->updateResource(batch);
 		}
@@ -167,7 +167,7 @@ void QRhiGraphicsPipelineBuilder::recreateShaderBindings(IRenderComponent* inRen
 		for (const auto& uniformBlock : stage.second.mUniformBlocks) {
 			if (!uniformBlock->isEmpty()) {
 				uniformBlock->create(inRhi);
-				bindings << QRhiShaderResourceBinding::uniformBuffer(bindingOffset, QRhiShaderResourceBinding::StageFlag::FragmentStage, uniformBlock->getUniformBlock());
+				bindings << QRhiShaderResourceBinding::uniformBuffer(bindingOffset, (QRhiShaderResourceBinding::StageFlag)(1 << (int)stage.first), uniformBlock->getUniformBlock());
 				uniformDefineCode += QString("layout(binding =  %1) uniform %2Block{\n").arg(bindingOffset).arg(uniformBlock->objectName());
 				for (auto& param : uniformBlock->getParamList()) {
 					uniformDefineCode += QString("    %1 %2;\n").arg(param->getTypeName()).arg(param->name);

@@ -1,7 +1,7 @@
 #ifndef QRhiGraphicsPipelineBuilder_h__
 #define QRhiGraphicsPipelineBuilder_h__
 
-#include "RHI\QRhiUniform.h"
+#include "RHI\QRhiUniformBlock.h"
 #include "QObject"
 #include "QDetailWidgetMacros.h"
 
@@ -43,7 +43,7 @@ class QRhiGraphicsPipelineBuilder: public QObject{
 		Q_PROPERTY(QRhiGraphicsPipeline::StencilOpState StencilBackOp READ getStencilBackOp WRITE setStencilBackOp)
 		Q_PROPERTY(quint32 StencilReadMask READ getStencilReadMask WRITE setStencilReadMask)
 		Q_PROPERTY(quint32 StencilWriteMask READ getStencilWriteMask WRITE setStencilWriteMask)
-		Q_PROPERTY(QMap<QString, QRhiUniform*> UniformBlocks READ getUniformBlocks WRITE setUniformBlocks)
+		Q_PROPERTY(QMap<QString, QRhiUniformBlock*> UniformBlocks READ getUniformBlocks WRITE setUniformBlocks)
 
 		Q_META_BEGIN(QRhiGraphicsPipelineBuilder)
 			Q_META_P_MAP_FIXED_KEY(UniformBlocks,true)
@@ -84,15 +84,20 @@ public:
 	void setLineWidth(float val) { mLineWidth = val; sigRebuild.request();  }
 	QRhiGraphicsPipeline::PolygonMode getPolygonMode() const { return mPolygonMode; }
 	void setPolygonMode(QRhiGraphicsPipeline::PolygonMode val) { mPolygonMode = val; sigRebuild.request();  }
-	QMap<QString, QRhiUniform*> getUniformBlocks() { return mUniformMap; }
-	void setUniformBlocks(QMap<QString, QRhiUniform*>) {}
+	QMap<QString, QRhiUniformBlock*> getUniformBlocks() { return mUniformMap; }
+	void setUniformBlocks(QMap<QString, QRhiUniformBlock*>) {}
 public:
-	QRhiGraphicsPipelineBuilder(){}
+	QRhiGraphicsPipelineBuilder(QObject* inParent = nullptr):QObject(inParent){
+		setParent(inParent);
+	}
+	virtual ~QRhiGraphicsPipelineBuilder() {
+		qDebug() << "Destory";
+	}
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
 	void setInputAttribute(QVector<QRhiVertexInputAttributeEx> inInputAttributes);
 	void setInputBindings(QVector<QRhiVertexInputBindingEx> inInputBindings);
-	QRhiUniform* addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName);
-	QRhiUniform* getUniformBlock(const QString& inName);
+	QRhiUniformBlock* addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName);
+	QRhiUniformBlock* getUniformBlock(const QString& inName);
 	QVector<QRhiCommandBuffer::VertexInput> getVertexInputs();
 	QRhiShaderResourceBindings* getShaderResourceBindings();
 	QRhiGraphicsPipeline* getGraphicsPipeline() { return mPipeline.get(); }
@@ -125,14 +130,14 @@ private:
 	QVector<QRhiVertexInputAttributeEx> mInputAttributes;
 	QVector<QRhiVertexInputBindingEx> mInputBindings;
 	struct StageInfo {
-		QVector<QSharedPointer<QRhiUniform>> mUniformBlocks;
+		QVector<QSharedPointer<QRhiUniformBlock>> mUniformBlocks;
 		QByteArray VersionCode = "#version 440\n";
 		QByteArray DefineCode;
 		QByteArray MainCode;
 	};
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QHash<QRhiShaderStage::Type, StageInfo> mStageInfos;
-	QMap<QString, QRhiUniform*> mUniformMap;
+	QMap<QString, QRhiUniformBlock*> mUniformMap;
 };
 
 #endif // QRhiGraphicsPipelineBuilder_h__

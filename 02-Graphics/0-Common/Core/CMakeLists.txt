@@ -4,7 +4,7 @@ set(Au)
 
 file(GLOB_RECURSE PROJECT_SOURCE FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.h  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.qrc)
 
-add_library(Core ${PROJECT_SOURCE})
+add_library(Core STATIC ${PROJECT_SOURCE})
 
 set_property(TARGET Core PROPERTY AUTOMOC ON)
 
@@ -19,4 +19,5 @@ target_link_libraries(Core PUBLIC
     Qt::WidgetsPrivate
     Qt::ShaderToolsPrivate
     QDetailWidget
+    assimp::assimp
 )

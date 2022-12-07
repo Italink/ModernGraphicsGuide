@@ -16,15 +16,15 @@ class QTriangleRenderComponent : public ISceneRenderComponent {
 	Q_OBJECT
 private:
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*,Pipeline);
+	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*, Pipeline);
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
-		Pipeline = new QRhiGraphicsPipelineBuilder;
-		Pipeline->setParent(this);
-		Pipeline->addUniformBlock(QRhiShaderStage::Fragment, "Transform")
-			->addVec4("MVP", QVector4D(1, 0.0, 0, 1));
+		Pipeline = new QRhiGraphicsPipelineBuilder(this);
+
+		Pipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
+			->addMat4("MVP", QGenericMatrix<4,4,float>());
 
 		Pipeline->addUniformBlock(QRhiShaderStage::Fragment, "Material")
 			->addVec4("Color", QVector4D(1, 0.0, 0, 1));
@@ -37,7 +37,7 @@ protected:
 			});
 		Pipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
 void main(){
-	gl_Position = vec4(Position,0.0f,1.0f);
+	gl_Position = Transform.MVP * vec4(Position,0.0f,1.0f);
 }
 )");
 		Pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
@@ -53,6 +53,7 @@ void main(){
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
 	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
+		Pipeline->getUniformBlock("Transform")->setMat4("MVP", calculateMatrixMVP().toGenericMatrix<4, 4>());
 		Pipeline->update(batch);
 		if (Pipeline->sigRebuild.receive()) {
 			sigRecreatePipeline.request();
@@ -72,7 +73,7 @@ int main(int argc, char** argv) {
 	qputenv("QSG_INFO", "1");
 	QApplication app(argc, argv);
 	QRhiWindow::InitParams initParams;
-	initParams.backend = QRhi::Implementation::D3D11;
+	initParams.backend = QRhi::Implementation::Vulkan;
 	QRendererWidget widget(initParams);
 	widget.setupDetailWidget();
 	widget.setupCamera();

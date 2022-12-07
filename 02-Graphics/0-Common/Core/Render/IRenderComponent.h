@@ -6,6 +6,7 @@
 class ISceneRenderPass;
 
 class IRenderComponent: public QObject {
+	Q_OBJECT
 	friend class ISceneRenderPass;
 public:
 	QRhiEx::Signal sigRecreateResource;

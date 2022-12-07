@@ -3,7 +3,7 @@
 
 #include "Customization\Instance\QInstanceDetail.h"
 
-class QRhiUniform;
+class QRhiUniformBlock;
 
 class QInstacneDetail_QRhiUniformBlock: public QInstanceDetail {
 	Q_OBJECT
@@ -12,7 +12,7 @@ public:
 	static bool Filter(const QSharedPointer<QInstance> inInstance);
 	virtual void Build() override;
 private:
-	QRhiUniform* mUniformBlock = nullptr;
+	QRhiUniformBlock* mUniformBlock = nullptr;
 };
 
 #endif // QInstacneDetail_QRhiUniformBlock_h__

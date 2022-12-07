@@ -1,5 +1,5 @@
-#ifndef QRhiUniform_h__
-#define QRhiUniform_h__
+#ifndef QRhiUniformBlock_h__
+#define QRhiUniformBlock_h__
 
 #include <QVariant>
 #include "RHI/QRhiEx.h"
@@ -7,25 +7,26 @@
 
 class IRenderComponent;
 
-class QRhiUniform : public QObject{
+class QRhiUniformBlock : public QObject{
 	Q_OBJECT
 public:
-	QRhiUniform(QRhiShaderStage::Type inStage);
-	QRhiUniform* addFloat(QString name, float var);
-	QRhiUniform* addVec2(QString name, QVector2D var);
-	QRhiUniform* addVec3(QString name, QVector3D var);
-	QRhiUniform* addVec4(QString name, QVector4D var);
+	QRhiUniformBlock(QRhiShaderStage::Type inStage, QObject* inParent = nullptr);
+	QRhiUniformBlock* addFloat(QString name, float var);
+	QRhiUniformBlock* addVec2(QString name, QVector2D var);
+	QRhiUniformBlock* addVec3(QString name, QVector3D var);
+	QRhiUniformBlock* addVec4(QString name, QVector4D var);
+	QRhiUniformBlock* addMat4(QString name, QGenericMatrix<4, 4, float> var);
 	void setFloat(QString name, float var);
 	void setVec2(QString name, QVector2D var);
 	void setVec3(QString name, QVector3D var);
 	void setVec4(QString name, QVector4D var);
+	void setMat4(QString name, QGenericMatrix<4, 4, float> var);
 	bool renameParma(const QString& src, const QString& dst);
 	void removeParam(const QString& name);
 	void create(QRhiEx* inRhi);
 	void updateResource(QRhiResourceUpdateBatch* batch);
 	struct ParamMemoryDesc{
 		QString name;
-		QRhiShaderResourceBinding::StageFlag stage = QRhiShaderResourceBinding::StageFlag::FragmentStage;
 		QVariant var;
 		uint32_t offsetInByte;
 		uint32_t sizeInByte;
@@ -42,7 +43,7 @@ public:
 	};
 	QRhiBuffer* getUniformBlock() const { return mUniformBlock.get(); }
 	bool isEmpty()const { return mDataList.isEmpty(); }
-	const QList<QSharedPointer<QRhiUniform::ParamMemoryDesc>>& getParamList() const { return mDataList; }
+	const QList<QSharedPointer<QRhiUniformBlock::ParamMemoryDesc>>& getParamList() const { return mDataList; }
 protected:
 	void addParam(const QString& inName, ParamMemoryDesc::Type inType , QVariant inVar);
 	QString getVaildName(QString name);
@@ -56,4 +57,4 @@ protected:
 public:
 	QRhiEx::Signal sigRecreateBuffer;
 };
-#endif // QRhiUniform_h_
+#endif // QRhiUniformBlock_h_
