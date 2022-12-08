@@ -18,9 +18,8 @@ macro(get_all_targets_internal TARGETS DIR)
 endmacro()
 
 function(initlize_common_libaray)
-    add_subdirectory(0-Common/3rdParty/assimp)
-    add_subdirectory(0-Common/3rdParty/QDetailWidget)
-    add_subdirectory(0-Common/Core)
+    add_subdirectory(0-Core)
+    
     get_all_targets(COMMON_LOCAL_TARGETS)
     list(APPEND COMMON_TARGETS ${COMMON_LOCAL_TARGETS})
     foreach(TARGET_ITEM ${COMMON_LOCAL_TARGETS})
