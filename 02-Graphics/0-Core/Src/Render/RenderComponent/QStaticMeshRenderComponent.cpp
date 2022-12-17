@@ -1,13 +1,5 @@
 #include "QStaticMeshRenderComponent.h"
 #include "Render/IRenderPass.h"
-#include "assimp/Importer.hpp"
-#include "assimp/postprocess.h"
-#include "assimp/scene.h"
-#include "assimp/matrix4x4.h"
-#include "QPair"
-#include "QQueue"
-#include "QDir"
-#include "Asset/AssetUtils.h"
 
 QStaticMeshRenderComponent::QStaticMeshRenderComponent(const QString& inStaticMeshPath) {
 	setupStaticMeshPath(inStaticMeshPath);
@@ -19,128 +11,41 @@ QString QStaticMeshRenderComponent::getStaticMeshPath() const {
 
 QStaticMeshRenderComponent* QStaticMeshRenderComponent::setupStaticMeshPath(QString inPath) {
 	mStaticMeshPath = inPath;
+	mStaticMesh = QStaticMesh::loadFromFile(inPath);
 	sigRecreateResource.request();
 	sigRecreatePipeline.request();
 	return this;
 }
 
 void QStaticMeshRenderComponent::recreateResource() {
-	if (mStaticMeshPath.isEmpty())
+	if (mStaticMesh.isNull())
 		return;
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(mStaticMeshPath.toUtf8().constData(), aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals | aiProcess_CalcTangentSpace);
-	if (!scene) {
-		return;
-	}
-	mSubMeshes.clear();
-	QVector< QMap<QString, QImage>> matertialInfos;
-	static QStringList TextureNameMap = { "None","Diffuse","Specular","Ambient","Emissive","Height","Normals","Shininess","Opacity","Displacement","Lightmap","Reflection",
-		"BaseColor","NormalCamera","EmissionColor","Metalness","DiffuseRoughnes","AmbientOcclusion",
-		"Unknown","Sheen","Clearcoat","Transmission" };
-	QDir dir = QFileInfo(mStaticMeshPath).dir();
-	for (uint i = 0; i < scene->mNumMaterials; i++) {
-		 QMap<QString, QImage> materialInfo;
-		aiMaterial* rawMaterial = scene->mMaterials[i];
-		for (int i = aiTextureType_DIFFUSE; i < AI_TEXTURE_TYPE_MAX; i++) {
-			int count = rawMaterial->GetTextureCount(aiTextureType(i));
-			for (int j = 0; j < count; j++) {
-				aiString path;
-				rawMaterial->GetTexture(aiTextureType(i), j, &path);
-				QString name = rawMaterial->GetName().C_Str();
-				if (name.startsWith('/')) {
-					QString newPath = dir.filePath(name.mid(1, name.lastIndexOf('/') - 1));
-					dir.setPath(newPath);
-				}
-				QString realPath = dir.filePath(path.C_Str());
 
-				QImage image;
-				if (QFile::exists(realPath)) {
-					image.load(realPath);
-				}
-				else {
-					const aiTexture* embTexture = scene->GetEmbeddedTexture(path.C_Str());
-					if (embTexture != nullptr) {
-						if (embTexture->mHeight == 0) {
-							image.loadFromData((uchar*)embTexture->pcData, embTexture->mWidth, embTexture->achFormatHint);
-						}
-						else {
-							image = QImage((uchar*)embTexture->pcData, embTexture->mWidth, embTexture->mHeight, QImage::Format_ARGB32);
-						}
-					}
-				}
-				QString textureName = TextureNameMap[i];
-				if (j != 0) {
-					textureName += QString::number(j);
-				}
-				materialInfo[textureName] = image;
-			}
-		}
-		matertialInfos << materialInfo;
-	}
+	mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::VertexBuffer, sizeof(QStaticMesh::Vertex) * mStaticMesh->mVertices.size()));
+	mVertexBuffer->create();
+	mIndexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::IndexBuffer, sizeof(QStaticMesh::Index) * mStaticMesh->mIndices.size()));
+	mIndexBuffer->create();
 
-	QQueue<QPair<aiNode*, aiMatrix4x4>> qNode;
-	qNode.push_back({ scene->mRootNode ,aiMatrix4x4() });
-	while (!qNode.isEmpty()) {
-		QPair<aiNode*, aiMatrix4x4> node = qNode.takeFirst();
-		for (unsigned int i = 0; i < node.first->mNumMeshes; i++) {
-			aiMesh* mesh = scene->mMeshes[node.first->mMeshes[i]];
-			QStaticSubMesh* subMesh = new QStaticSubMesh;
-			subMesh->setParent(this);
-			subMesh->mLocalTransfrom = AssetUtils::converter(node.second);
-			subMesh->mMaterialInfo = matertialInfos[mesh->mMaterialIndex];
-			subMesh->mVertices.resize(mesh->mNumVertices);
-			for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-				QStaticSubMesh::Vertex& vertex = subMesh->mVertices[i];
-				vertex.position = AssetUtils::converter(mesh->mVertices[i]);
-				if (mesh->mNormals)
-					vertex.normal = AssetUtils::converter(mesh->mNormals[i]);
-				if (mesh->mTextureCoords[0]) {
-					vertex.texCoord.setX(mesh->mTextureCoords[0][i].x);
-					vertex.texCoord.setY(mesh->mTextureCoords[0][i].y);
-				}
-				if (mesh->mTangents)
-					vertex.tangent = AssetUtils::converter(mesh->mTangents[i]);
-				if (mesh->mBitangents)
-					vertex.bitangent = AssetUtils::converter(mesh->mBitangents[i]);
-			}
-
-			for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-				aiFace face = mesh->mFaces[i];
-				for (unsigned int j = 0; j < face.mNumIndices; j++) {
-					subMesh->mIndices.push_back(face.mIndices[j]);
-				}
-			}
-			mSubMeshes << subMesh;
-		}
-		for (unsigned int i = 0; i < node.first->mNumChildren; i++) {
-			qNode.push_back({ node.first->mChildren[i] ,node.second * node.first->mChildren[i]->mTransformation });
-		}
-	}
-
-	for (auto& subMesh : mSubMeshes) {
-		subMesh->mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::VertexBuffer, sizeof(QStaticSubMesh::Vertex) * subMesh->mVertices.size()));
-		subMesh->mVertexBuffer->create();
-		subMesh->mIndexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::IndexBuffer, sizeof(QStaticSubMesh::Index) * subMesh->mIndices.size()));
-		subMesh->mIndexBuffer->create();
-
-		subMesh->mPipeline.reset(new QRhiGraphicsPipelineBuilder);
-		subMesh->mPipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
+	for (auto& subMesh : mStaticMesh->mSubmeshes) {
+		QRhiGraphicsPipelineBuilder* pipeline = new QRhiGraphicsPipelineBuilder(this);
+		mPipelines << pipeline;
+		pipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
 			->addParam("MVP", QGenericMatrix<4, 4, float>())
 			->addParam("M", QGenericMatrix<4, 4, float>());
 
-		subMesh->mPipeline->setInputBindings({
-			QRhiVertexInputBindingEx(subMesh->mVertexBuffer.get(),sizeof(QStaticSubMesh::Vertex))
-			});
-
-		subMesh->mPipeline->setInputAttribute({
-			QRhiVertexInputAttributeEx("inPosition"	,0, 0, QRhiVertexInputAttribute::Float3, offsetof(QStaticSubMesh::Vertex,position)),
-			QRhiVertexInputAttributeEx("inNormal"	,0, 1, QRhiVertexInputAttribute::Float3, offsetof(QStaticSubMesh::Vertex,normal)),
-			QRhiVertexInputAttributeEx("inTangent"	,0, 2, QRhiVertexInputAttribute::Float3, offsetof(QStaticSubMesh::Vertex,tangent)),
-			QRhiVertexInputAttributeEx("inBitangent",0, 3, QRhiVertexInputAttribute::Float3, offsetof(QStaticSubMesh::Vertex,bitangent)),
-			QRhiVertexInputAttributeEx("inUV"		,0, 4, QRhiVertexInputAttribute::Float2, offsetof(QStaticSubMesh::Vertex,texCoord))
+		pipeline->setInputBindings({
+			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(QStaticMesh::Vertex))
 		});
 
-		subMesh->mPipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
+		pipeline->setInputAttribute({
+			QRhiVertexInputAttributeEx("inPosition"	,0, 0, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,position)),
+			QRhiVertexInputAttributeEx("inNormal"	,0, 1, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,normal)),
+			QRhiVertexInputAttributeEx("inTangent"	,0, 2, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,tangent)),
+			QRhiVertexInputAttributeEx("inBitangent",0, 3, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,bitangent)),
+			QRhiVertexInputAttributeEx("inUV"		,0, 4, QRhiVertexInputAttribute::Float2, offsetof(QStaticMesh::Vertex,texCoord))
+		});
+
+		pipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
 layout(location = 0) out vec2 vUV;
 layout(location = 1) out vec3 vWorldPosition;
 layout(location = 2) out mat3 vTangentBasis;
@@ -151,9 +56,9 @@ void main(){
 	gl_Position = Transform.MVP * vec4(inPosition,1.0f);
 }
 )");
-	if (subMesh->mMaterialInfo.contains("Diffuse")) {
-		subMesh->mPipeline->addTexture(QRhiShaderStage::Fragment, "Diffuse", subMesh->mMaterialInfo["Diffuse"]);
-		subMesh->mPipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+	if (subMesh.materialInfo.contains("Diffuse")) {
+		pipeline->addTexture(QRhiShaderStage::Fragment, "Diffuse", subMesh.materialInfo["Diffuse"]);
+		pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
 		layout(location = 0) in vec2 vUV;
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
@@ -162,7 +67,7 @@ void main(){
 		})");
 	}
 	else {
-		subMesh->mPipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+		pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
 		layout(location = 0) in vec2 vUV;
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
@@ -174,42 +79,45 @@ void main(){
 }
 
 void QStaticMeshRenderComponent::recreatePipeline() {
-	for (auto& subMesh : mSubMeshes) {
-		subMesh->mPipeline->create(this);
+	for (auto& pipeline : mPipelines) {
+		pipeline->create(this);
 	}
 }
 
 void QStaticMeshRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
-	for (auto& subMesh : mSubMeshes) {
-		batch->uploadStaticBuffer(subMesh->mVertexBuffer.get(), subMesh->mVertices.constData());
-		batch->uploadStaticBuffer(subMesh->mIndexBuffer.get(), subMesh->mIndices.constData());
-	}
+	batch->uploadStaticBuffer(mVertexBuffer.get(), mStaticMesh->mVertices.constData());
+	batch->uploadStaticBuffer(mIndexBuffer.get(), mStaticMesh->mIndices.constData());
+	
 }
 
 void QStaticMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* batch) {
-	for (auto& subMesh : mSubMeshes) {
-		QMatrix4x4 MVP = calculateMatrixMVP() * subMesh->mLocalTransfrom;
-		QMatrix4x4 M = calculateMatrixModel() * subMesh->mLocalTransfrom;
-		subMesh->mPipeline->getUniformBlock("Transform")->setParamValue("MVP", QVariant::fromValue(MVP.toGenericMatrix<4,4>()));
-		subMesh->mPipeline->getUniformBlock("Transform")->setParamValue("M", QVariant::fromValue(M.toGenericMatrix<4, 4>()));
-		subMesh->mPipeline->update(batch);
-		if (subMesh->mPipeline->sigRebuild.receive()) {
+	for (int i = 0; i < mPipelines.size(); i++) {
+		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
+		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];
+		QMatrix4x4 MVP = calculateMatrixMVP() * meshInfo.localTransfrom;
+		QMatrix4x4 M = calculateMatrixModel() * meshInfo.localTransfrom;
+		pipeline->getUniformBlock("Transform")->setParamValue("MVP", QVariant::fromValue(MVP.toGenericMatrix<4, 4>()));
+		pipeline->getUniformBlock("Transform")->setParamValue("M", QVariant::fromValue(M.toGenericMatrix<4, 4>()));
+		pipeline->update(batch);
+		if (pipeline->sigRebuild.receive()) {
 			sigRecreatePipeline.request();
 		}
 	}
 }
 
 void QStaticMeshRenderComponent::renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
-	for (auto& subMesh : mSubMeshes) {
-		cmdBuffer->setGraphicsPipeline(subMesh->mPipeline->getGraphicsPipeline());
+	for (int i = 0; i < mPipelines.size(); i++) {
+		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
+		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];
+		cmdBuffer->setGraphicsPipeline(pipeline->getGraphicsPipeline());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
-		const QRhiCommandBuffer::VertexInput vertexBindings(subMesh->mVertexBuffer.get(), 0);
-		cmdBuffer->setVertexInput(0, 1, &vertexBindings, subMesh->mIndexBuffer.get(), 0, QRhiCommandBuffer::IndexUInt32);
-		cmdBuffer->drawIndexed(subMesh->mIndices.size());
+		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), meshInfo.verticesOffset * sizeof (QStaticMesh::Vertex));
+		cmdBuffer->setVertexInput(0, 1, &vertexBindings, mIndexBuffer.get(), meshInfo.indicesOffset * sizeof(QStaticMesh::Index), QRhiCommandBuffer::IndexUInt32);
+		cmdBuffer->drawIndexed(meshInfo.indicesRange);
 	}
 }
 
 bool QStaticMeshRenderComponent::isVaild() {
-	return !mSubMeshes.isEmpty();
+	return !mStaticMesh.isNull();
 }
