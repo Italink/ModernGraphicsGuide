@@ -16,13 +16,13 @@ class QTriangleRenderComponent : public ISceneRenderComponent {
 	Q_OBJECT
 private:
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	Q_PROPERTY_VAR(QRhiGraphicsPipelineBuilder*, Pipeline);
+	QRhiGraphicsPipelineBuilder* Pipeline;
 protected:
 	void recreateResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 		Pipeline = new QRhiGraphicsPipelineBuilder(this);
-
+		Pipeline->setParent(this);
 		Pipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
 			->addMat4("MVP", QGenericMatrix<4,4,float>());
 
@@ -32,6 +32,7 @@ protected:
 		Pipeline->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(float) * 2)
 			});
+
 		Pipeline->setInputAttribute({
 			QRhiVertexInputAttributeEx("Position",0,0,QRhiVertexInputAttributeEx::Float2,0)
 			});

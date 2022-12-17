@@ -20,7 +20,8 @@ int main(int argc, char **argv)
 		QFrameGraphBuilder::begin()
 		->node("Triangle", (new QDefaultSceneRenderPass())
 		->addRenderComponent(
-			new QStaticMeshRenderComponent()
+			(new QStaticMeshRenderComponent)
+			->setupStaticMeshPath("E:/QEngine/Asset/Model/FBX/Genji/Genji.FBX")
 		)
 	)
 		->end()
@@ -29,5 +30,3 @@ int main(int argc, char **argv)
 	widget.show();
 	return app.exec();
 }
-
-#include "main.moc"
