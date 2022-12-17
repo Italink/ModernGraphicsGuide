@@ -22,21 +22,21 @@ QByteArray QRhiGraphicsPipelineBuilder::getInputFormatTypeName(QRhiVertexInputAt
 	case QRhiVertexInputAttribute::UNormByte:
 		return "vec4";
 	case QRhiVertexInputAttribute::UInt4:
-		return "vec4";
+		return "uvec4";
 	case QRhiVertexInputAttribute::UInt3:
-		return "vec4";
+		return "uvec3";
 	case QRhiVertexInputAttribute::UInt2:
-		return "vec4";
+		return "uvec2";
 	case QRhiVertexInputAttribute::UInt:
-		return "vec4";
+		return "uint";
 	case QRhiVertexInputAttribute::SInt4:
-		return "vec4";
+		return "ivec4";
 	case QRhiVertexInputAttribute::SInt3:
-		return "vec4";
+		return "ivec3";
 	case QRhiVertexInputAttribute::SInt2:
-		return "vec4";
+		return "ivec2";
 	case QRhiVertexInputAttribute::SInt:
-		return "vec4";
+		return "int";
 	default:
 		break;
 	}
@@ -79,18 +79,29 @@ QRhiUniformBlock* QRhiGraphicsPipelineBuilder::addUniformBlock(QRhiShaderStage::
 	unifrom->setObjectName(inName);
 	mStageInfos[inStage].mUniformBlocks << unifrom;
 	mUniformMap[inName] = unifrom.get();
-	sigRebuild.request();
 	return unifrom.get();
 }
 
 void QRhiGraphicsPipelineBuilder::addUniformBlock(QRhiShaderStage::Type inStage, QSharedPointer<QRhiUniformBlock> inUniformBlock) {
 	mStageInfos[inStage].mUniformBlocks << inUniformBlock;
 	mUniformMap[inUniformBlock->objectName()] = inUniformBlock.get();
-	sigRebuild.request();
 }
 
 QRhiUniformBlock* QRhiGraphicsPipelineBuilder::getUniformBlock(const QString& inName) {
 	return mUniformMap.value(inName);
+}
+
+void QRhiGraphicsPipelineBuilder::addTexture(QRhiShaderStage::Type inStage, const QString& inName, const QImage& inImage, QRhiSampler::Filter magFilter, QRhiSampler::Filter minFilter, QRhiSampler::Filter mipmapMode, QRhiSampler::AddressMode addressU, QRhiSampler::AddressMode addressV, QRhiSampler::AddressMode addressW) {
+	QSharedPointer<TextureInfo> textureInfo = QSharedPointer<TextureInfo>::create();
+	textureInfo->Name = inName;
+	textureInfo->Image = inImage;
+	textureInfo->MagFilter = magFilter;
+	textureInfo->MinFilter = minFilter;
+	textureInfo->MipmapMode = mipmapMode;
+	textureInfo->AddressU = addressU;
+	textureInfo->AddressV = addressV;
+	textureInfo->AddressW = addressW;
+	mStageInfos[inStage].mTextureInfos << textureInfo;
 }
 
 QVector<QRhiCommandBuffer::VertexInput> QRhiGraphicsPipelineBuilder::getVertexInputs() {
@@ -111,6 +122,7 @@ void QRhiGraphicsPipelineBuilder::create(IRenderComponent* inRenderComponent) {
 	mPipeline->setTopology(mTopology);
 	mPipeline->setCullMode(mCullMode);
 	mPipeline->setFrontFace(mFrontFace);
+	mPipeline->setLineWidth(mLineWidth);
 	mPipeline->setTargetBlends(mBlendStates.begin(), mBlendStates.end());
 	mPipeline->setDepthTest(bEnableDepthTest);
 	mPipeline->setDepthWrite(bEnableDepthWrite);
@@ -121,7 +133,6 @@ void QRhiGraphicsPipelineBuilder::create(IRenderComponent* inRenderComponent) {
 	mPipeline->setStencilReadMask(mStencilReadMask);
 	mPipeline->setStencilWriteMask(mStencilWriteMask);
 	mPipeline->setSampleCount(inRenderComponent->sceneRenderPass()->getSampleCount());
-	mPipeline->setLineWidth(mLineWidth);
 	mPipeline->setDepthBias(mDepthBias);
 	mPipeline->setSlopeScaledDepthBias(mSlopeScaledDepthBias);
 	mPipeline->setPatchControlPointCount(mPatchControlPointCount);
@@ -148,8 +159,15 @@ void QRhiGraphicsPipelineBuilder::create(IRenderComponent* inRenderComponent) {
 
 void QRhiGraphicsPipelineBuilder::update(QRhiResourceUpdateBatch* batch) {
 	for (const auto& stage : mStageInfos) {
+		for (const auto& textureInfo : stage.mTextureInfos) {
+			if (textureInfo->sigUpdate.receive()) {
+				batch->uploadTexture(textureInfo->Texture.get(), textureInfo->Image.convertedTo(QImage::Format::Format_RGBA8888));
+			}
+		}
 		for (const auto& uniformBlock : stage.mUniformBlocks) {
 			if (uniformBlock->sigRecreateBuffer.receive()) {
+				sigRebuild.request();
+				break;
 			}
 			uniformBlock->updateResource(batch);
 		}
@@ -172,13 +190,39 @@ void QRhiGraphicsPipelineBuilder::recreateShaderBindings(IRenderComponent* inRen
 	int bindingOffset = 0;
 	for (const auto& stage : mStageInfos.asKeyValueRange()) {
 		QString uniformDefineCode;
+		for (auto& textureInfo : stage.second.mTextureInfos) {
+			textureInfo->Texture.reset(inRhi->newTexture(QRhiTexture::RGBA8, textureInfo->Image.size(), 1));
+			textureInfo->Texture->create();
+			textureInfo->sigUpdate.request();
+			for (const auto& sampler : mSamplerList) {
+				if (sampler->magFilter() == textureInfo->MagFilter
+					&& sampler->minFilter() == textureInfo->MinFilter
+					&& sampler->mipmapMode() == textureInfo->MipmapMode
+					&& sampler->addressU() == textureInfo->AddressU
+					&& sampler->addressV() == textureInfo->AddressV
+					&& sampler->addressW() == textureInfo->AddressW
+					) {
+					textureInfo->Sampler = sampler;
+					break;
+				}
+			}
+			if (textureInfo->Sampler.isNull()) {
+				textureInfo->Sampler.reset(inRhi->newSampler(textureInfo->MagFilter, textureInfo->MinFilter, textureInfo->MipmapMode, textureInfo->AddressU, textureInfo->AddressV, textureInfo->AddressW));
+				mSamplerList << textureInfo->Sampler;
+				textureInfo->Sampler->create();
+			}
+			bindings << QRhiShaderResourceBinding::sampledTexture(bindingOffset, (QRhiShaderResourceBinding::StageFlag)(1 << (int)stage.first), textureInfo->Texture.get(), textureInfo->Sampler.get());
+			uniformDefineCode += QString("layout(binding =  %1) uniform sampler2D %2;\n").arg(bindingOffset).arg(textureInfo->Name);
+			bindingOffset++;
+		}
+
 		for (const auto& uniformBlock : stage.second.mUniformBlocks) {
 			if (!uniformBlock->isEmpty()) {
 				uniformBlock->create(inRhi);
 				bindings << QRhiShaderResourceBinding::uniformBuffer(bindingOffset, (QRhiShaderResourceBinding::StageFlag)(1 << (int)stage.first), uniformBlock->getUniformBlock());
 				uniformDefineCode += QString("layout(binding =  %1) uniform %2Block{\n").arg(bindingOffset).arg(uniformBlock->objectName());
 				for (auto& param : uniformBlock->getParamList()) {
-					uniformDefineCode += QString("    %1 %2;\n").arg(param->getTypeName()).arg(param->name);
+					uniformDefineCode += QString("    %1 %2;\n").arg(param->typeName()).arg(param->valueName());
 				}
 				uniformDefineCode += QString::asprintf("}%s;\n", uniformBlock->objectName().toLocal8Bit().data());
 				bindingOffset++;
@@ -200,7 +244,6 @@ void QRhiGraphicsPipelineBuilder::recreateShaderBindings(IRenderComponent* inRen
 	}
 
 	mStageInfos[QRhiShaderStage::Fragment].DefineCode += fragOutputCode.toLocal8Bit();
-
 	mShaderBindings.reset(inRhi->newShaderResourceBindings());
 	mShaderBindings->setBindings(bindings.begin(), bindings.end());
 	mShaderBindings->create();

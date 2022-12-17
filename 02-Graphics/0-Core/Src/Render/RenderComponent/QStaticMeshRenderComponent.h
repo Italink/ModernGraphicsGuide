@@ -19,9 +19,8 @@ public:
 		QVector2D texCoord;
 	};
 	using Index = uint32_t;
-	using MaterialInfo = QMap<QString, QImage>;
 	QMatrix4x4 mLocalTransfrom;
-	MaterialInfo mMaterialInfo;
+	QMap<QString, QImage> mMaterialInfo;
 	QVector<Vertex> mVertices;
 	QVector<Index> mIndices;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;

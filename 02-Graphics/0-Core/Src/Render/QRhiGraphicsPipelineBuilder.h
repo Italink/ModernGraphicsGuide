@@ -90,16 +90,30 @@ public:
 	void setUniformBlocks(QMap<QString, QRhiUniformBlock*>) {}
 public:
 	void setShaderMainCode(QRhiShaderStage::Type inStage, QByteArray inCode);
+
 	void setInputAttribute(QVector<QRhiVertexInputAttributeEx> inInputAttributes);
 	void setInputBindings(QVector<QRhiVertexInputBindingEx> inInputBindings);
+	QVector<QRhiCommandBuffer::VertexInput> getVertexInputs();
+
 	QRhiUniformBlock* addUniformBlock(QRhiShaderStage::Type inStage, const QString& inName);
 	void addUniformBlock(QRhiShaderStage::Type inStage, QSharedPointer<QRhiUniformBlock> inUniformBlock);
 	QRhiUniformBlock* getUniformBlock(const QString& inName);
-	QVector<QRhiCommandBuffer::VertexInput> getVertexInputs();
+
+	void addTexture(QRhiShaderStage::Type inStage,
+		const QString& inName, 
+		const QImage& inImage, 
+		QRhiSampler::Filter magFilter = QRhiSampler::Filter::Nearest,
+		QRhiSampler::Filter minFilter = QRhiSampler::Filter::Linear,
+		QRhiSampler::Filter mipmapMode = QRhiSampler::Filter::Linear,
+		QRhiSampler::AddressMode addressU = QRhiSampler::AddressMode::Repeat,
+		QRhiSampler::AddressMode addressV = QRhiSampler::AddressMode::Repeat,
+		QRhiSampler::AddressMode addressW = QRhiSampler::AddressMode::Repeat);
+
 	QRhiShaderResourceBindings* getShaderResourceBindings();
 	QRhiGraphicsPipeline* getGraphicsPipeline() { return mPipeline.get(); }
 	void create(IRenderComponent* inRenderComponent);
 	void update(QRhiResourceUpdateBatch* batch);
+
 	QByteArray getInputFormatTypeName(QRhiVertexInputAttribute::Format inFormat);
 	QByteArray getOutputFormatTypeName(QRhiTexture::Format inFormat);
 protected:
@@ -113,7 +127,7 @@ private:
 	QVector<QRhiGraphicsPipeline::TargetBlend> mBlendStates;
 	bool bEnableDepthTest = true;
 	bool bEnableDepthWrite = true;
-	QRhiGraphicsPipeline::CompareOp mDepthTestOp = QRhiGraphicsPipeline::Less;
+	QRhiGraphicsPipeline::CompareOp mDepthTestOp = QRhiGraphicsPipeline::LessOrEqual;
 	bool bEnableStencilTest = false;
 	QRhiGraphicsPipeline::StencilOpState mStencilFrontOp;
 	QRhiGraphicsPipeline::StencilOpState mStencilBackOp;
@@ -126,16 +140,33 @@ private:
 	QRhiVertexInputLayout mVertexInputLayout;
 	QVector<QRhiVertexInputAttributeEx> mInputAttributes;
 	QVector<QRhiVertexInputBindingEx> mInputBindings;
+
+	struct TextureInfo {
+		QString Name;
+		QImage Image;
+		QRhiSampler::Filter MagFilter;
+		QRhiSampler::Filter MinFilter;
+		QRhiSampler::Filter MipmapMode;
+		QRhiSampler::AddressMode AddressU;
+		QRhiSampler::AddressMode AddressV;
+		QRhiSampler::AddressMode AddressW;
+
+		QRhiEx::Signal sigUpdate;
+		QScopedPointer<QRhiTexture> Texture;
+		QSharedPointer<QRhiSampler> Sampler;
+	};
 	struct StageInfo {
 		QVector<QSharedPointer<QRhiUniformBlock>> mUniformBlocks;
-		QVector<QPair<QRhiTexture*, QRhiSampler*>> mTextures;
+		QVector<QSharedPointer<TextureInfo>> mTextureInfos;
 		QByteArray VersionCode = "#version 440\n";
 		QByteArray DefineCode;
 		QByteArray MainCode;
 	};
+
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QHash<QRhiShaderStage::Type, StageInfo> mStageInfos;
 	QMap<QString, QRhiUniformBlock*> mUniformMap;
+	QList<QSharedPointer<QRhiSampler>> mSamplerList;
 };
 
 #endif // QRhiGraphicsPipelineBuilder_h__

@@ -7,20 +7,7 @@
 #include "QPair"
 #include "QQueue"
 #include "QDir"
-
-QMatrix4x4 converter(const aiMatrix4x4& aiMat4) {
-	QMatrix4x4 mat4;
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 4; j++) {
-			mat4(i, j) = aiMat4[i][j];
-		}
-	}
-	return mat4;
-}
-
-QVector3D converter(const aiVector3D& aiVec3) {
-	return QVector3D(aiVec3.x, aiVec3.y, aiVec3.z);
-}
+#include "Asset/AssetUtils.h"
 
 QStaticMeshRenderComponent::QStaticMeshRenderComponent(const QString& inStaticMeshPath) {
 	setupStaticMeshPath(inStaticMeshPath);
@@ -46,13 +33,13 @@ void QStaticMeshRenderComponent::recreateResource() {
 		return;
 	}
 	mSubMeshes.clear();
-	QVector<QStaticSubMesh::MaterialInfo> matertialInfos;
+	QVector< QMap<QString, QImage>> matertialInfos;
 	static QStringList TextureNameMap = { "None","Diffuse","Specular","Ambient","Emissive","Height","Normals","Shininess","Opacity","Displacement","Lightmap","Reflection",
 		"BaseColor","NormalCamera","EmissionColor","Metalness","DiffuseRoughnes","AmbientOcclusion",
 		"Unknown","Sheen","Clearcoat","Transmission" };
 	QDir dir = QFileInfo(mStaticMeshPath).dir();
 	for (uint i = 0; i < scene->mNumMaterials; i++) {
-		QStaticSubMesh::MaterialInfo materialInfo;
+		 QMap<QString, QImage> materialInfo;
 		aiMaterial* rawMaterial = scene->mMaterials[i];
 		for (int i = aiTextureType_DIFFUSE; i < AI_TEXTURE_TYPE_MAX; i++) {
 			int count = rawMaterial->GetTextureCount(aiTextureType(i));
@@ -99,22 +86,22 @@ void QStaticMeshRenderComponent::recreateResource() {
 			aiMesh* mesh = scene->mMeshes[node.first->mMeshes[i]];
 			QStaticSubMesh* subMesh = new QStaticSubMesh;
 			subMesh->setParent(this);
-			subMesh->mLocalTransfrom = converter(node.second);
+			subMesh->mLocalTransfrom = AssetUtils::converter(node.second);
 			subMesh->mMaterialInfo = matertialInfos[mesh->mMaterialIndex];
 			subMesh->mVertices.resize(mesh->mNumVertices);
 			for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
 				QStaticSubMesh::Vertex& vertex = subMesh->mVertices[i];
-				vertex.position = converter(mesh->mVertices[i]);
+				vertex.position = AssetUtils::converter(mesh->mVertices[i]);
 				if (mesh->mNormals)
-					vertex.normal = converter(mesh->mNormals[i]);
+					vertex.normal = AssetUtils::converter(mesh->mNormals[i]);
 				if (mesh->mTextureCoords[0]) {
 					vertex.texCoord.setX(mesh->mTextureCoords[0][i].x);
 					vertex.texCoord.setY(mesh->mTextureCoords[0][i].y);
 				}
 				if (mesh->mTangents)
-					vertex.tangent = converter(mesh->mTangents[i]);
+					vertex.tangent = AssetUtils::converter(mesh->mTangents[i]);
 				if (mesh->mBitangents)
-					vertex.bitangent = converter(mesh->mBitangents[i]);
+					vertex.bitangent = AssetUtils::converter(mesh->mBitangents[i]);
 			}
 
 			for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
@@ -138,12 +125,8 @@ void QStaticMeshRenderComponent::recreateResource() {
 
 		subMesh->mPipeline.reset(new QRhiGraphicsPipelineBuilder);
 		subMesh->mPipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
-			->addMat4("MVP", QGenericMatrix<4, 4, float>())
-			->addMat4("M", QGenericMatrix<4, 4, float>())
-			;
-
-		subMesh->mPipeline->addUniformBlock(QRhiShaderStage::Fragment, "Material")
-			->addVec4("Color", QVector4D(1, 0.0, 0, 1));
+			->addParam("MVP", QGenericMatrix<4, 4, float>())
+			->addParam("M", QGenericMatrix<4, 4, float>());
 
 		subMesh->mPipeline->setInputBindings({
 			QRhiVertexInputBindingEx(subMesh->mVertexBuffer.get(),sizeof(QStaticSubMesh::Vertex))
@@ -169,12 +152,13 @@ void main(){
 }
 )");
 	if (subMesh->mMaterialInfo.contains("Diffuse")) {
+		subMesh->mPipeline->addTexture(QRhiShaderStage::Fragment, "Diffuse", subMesh->mMaterialInfo["Diffuse"]);
 		subMesh->mPipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
 		layout(location = 0) in vec2 vUV;
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
 		void main(){
-			FragColor = vec4(vec3(0.5+dot(vTangentBasis[2],vec3(0,1,0))),1.0f);
+			FragColor = texture(Diffuse,vUV);
 		})");
 	}
 	else {
@@ -206,9 +190,8 @@ void QStaticMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* 
 	for (auto& subMesh : mSubMeshes) {
 		QMatrix4x4 MVP = calculateMatrixMVP() * subMesh->mLocalTransfrom;
 		QMatrix4x4 M = calculateMatrixModel() * subMesh->mLocalTransfrom;
-
-		subMesh->mPipeline->getUniformBlock("Transform")->setMat4("MVP", MVP.toGenericMatrix<4,4>());
-		subMesh->mPipeline->getUniformBlock("Transform")->setMat4("M", M.toGenericMatrix<4,4>());
+		subMesh->mPipeline->getUniformBlock("Transform")->setParamValue("MVP", QVariant::fromValue(MVP.toGenericMatrix<4,4>()));
+		subMesh->mPipeline->getUniformBlock("Transform")->setParamValue("M", QVariant::fromValue(M.toGenericMatrix<4, 4>()));
 		subMesh->mPipeline->update(batch);
 		if (subMesh->mPipeline->sigRebuild.receive()) {
 			sigRecreatePipeline.request();

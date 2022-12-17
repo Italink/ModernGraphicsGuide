@@ -11,17 +11,17 @@ bool QInstacneDetail_QRhiUniformBlock::Filter(const QSharedPointer<QInstance> in
 
 void QInstacneDetail_QRhiUniformBlock::Build() {
 	mUniformBlock = (QRhiUniformBlock*) mInstance->GetPtr();
-	for (const QSharedPointer<QRhiUniformBlock::ParamMemoryDesc>& param : mUniformBlock->getParamList()) {
+	for (const QSharedPointer<UniformParamDescBase>& param : mUniformBlock->getParamList()) {
 		QPropertyHandler* handler = QPropertyHandler::FindOrCreate(
 			mUniformBlock,
-			param->var.metaType(),
-			param->name,
+			param->mValue.metaType(),
+			param->mName,
 			[weakParam = param.toWeakRef()]() {
-				return weakParam.lock()->var;
+				return weakParam.lock()->mValue;
 			},
 			[weakParam = param.toWeakRef()](QVariant var) {
-				weakParam.lock()->var = var;
-				weakParam.lock()->sigUpdateParam.request();
+				weakParam.lock()->mValue = var;
+				weakParam.lock()->sigUpdate.request();
 			}
 		);
 		AddProperty(handler);
