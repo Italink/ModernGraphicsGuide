@@ -106,6 +106,7 @@ void QSkeletalMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch
 		QMatrix4x4 M = calculateMatrixModel();
 		pipeline->getUniformBlock("Transform")->setParamValue("MVP", MVP.toGenericMatrix<4,4>());
 		pipeline->getUniformBlock("Transform")->setParamValue("M", M.toGenericMatrix<4, 4>());
+		pipeline->getUniformBlock("Transform")->setParamValue("Bone", mSkeletalMesh->mCurrentPosesMatrix);
 		pipeline->update(batch);
 		if (pipeline->sigRebuild.receive()) {
 			sigRecreatePipeline.request();

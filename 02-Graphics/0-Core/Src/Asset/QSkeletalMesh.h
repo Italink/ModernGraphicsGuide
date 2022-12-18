@@ -7,6 +7,7 @@
 #include "QMap"
 #include "QMatrix4x4"
 #include "AssetUtils.h"
+#include "QVariantAnimation"
 
 struct QSkeleton {
 	struct MeshNode {
@@ -24,12 +25,15 @@ struct QSkeleton {
 	QVector<AssetUtils::Mat4> mBoneOffsetMatrix;
 };
 
-struct QSkeletonAnimation {
+struct QSkeletalAnimation {
 	struct AnimNode {
 		QMap<double, QVector3D> translation;
 		QMap<double, QQuaternion> rotation;
 		QMap<double, QVector3D> scaling;
+
+		QMatrix4x4 getMatrix(const double& timeMs);
 	};
+
 	QMap<QString, AnimNode> mAnimNode;
 	double mDuration;
 	double mTicksPerSecond;
@@ -38,8 +42,10 @@ struct QSkeletonAnimation {
 class QSkeletalMesh {
 public:
 	static QSharedPointer<QSkeletalMesh> loadFromFile(const QString& inFilePath);
-
 	void resetPoses();
+	void playAnimation(int inAnimIndex);
+protected:
+	void processBoneTransform(QSkeletalAnimation* inAnim, double inTimeMs);
 public:
 	using Index = uint32_t;
 	struct Vertex {
@@ -63,9 +69,10 @@ public:
 	QVector<Vertex> mVertices;
 	QVector<Index> mIndices;
 	QVector<SubMeshInfo> mSubmeshes;
-
+	QSharedPointer<QVariantAnimation> mAnimPlayer;
 	QSharedPointer<QSkeleton> mSkeleton;
 	QVector<AssetUtils::Mat4> mCurrentPosesMatrix;
+	QVector<QSharedPointer<QSkeletalAnimation>> mAnimations;
 };
 
 #endif // QSkeletalMesh_h__

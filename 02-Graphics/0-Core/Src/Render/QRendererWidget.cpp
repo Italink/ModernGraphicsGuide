@@ -51,9 +51,9 @@ QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
 	mDetailWidget->setVisible(false);
 }
 
-void QRendererWidget::setupCamera() {
-	
+QCamera* QRendererWidget::setupCamera() {
 	mCamera->setupWindow(mRhiWindow);
+	return mCamera;
 }
 
 void QRendererWidget::setupDetailWidget() {

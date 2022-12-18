@@ -15,7 +15,7 @@ public:
 	QRhiEx::Signal sigRecompileRenderer;
 public:
 	QRendererWidget(QRhiWindow::InitParams inInitParams);
-	void setupCamera();
+	QCamera* setupCamera();
 	void setupDetailWidget();
 	void setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph);
 	void requestCompileRenderer();

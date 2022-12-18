@@ -5,6 +5,7 @@
 #include "assimp/scene.h"
 #include "assimp/matrix4x4.h"
 #include "QQueue"
+#include "QVariantAnimation"
 
 QSharedPointer<QSkeleton::MeshNode> processSkeletonMeshNode(aiNode* node) {
 	QSharedPointer<QSkeleton::MeshNode> boneNode = QSharedPointer<QSkeleton::MeshNode>::create();
@@ -98,6 +99,31 @@ QSharedPointer<QSkeletalMesh> QSkeletalMesh::loadFromFile(const QString& inFileP
 		}
 	}
 	skeletalMesh->resetPoses();
+
+	for (uint i = 0; i < scene->mNumAnimations; i++) {
+		aiAnimation* anim = scene->mAnimations[i];
+		QSharedPointer<QSkeletalAnimation> skeletalAnim = QSharedPointer<QSkeletalAnimation>::create();
+		skeletalAnim->mDuration = anim->mDuration;
+		skeletalAnim->mTicksPerSecond = anim->mTicksPerSecond;
+		for (unsigned int j = 0; j < anim->mNumChannels; j++) {
+			aiNodeAnim* node = anim->mChannels[j];
+			QSkeletalAnimation::AnimNode& skNode = skeletalAnim->mAnimNode[node->mNodeName.C_Str()];
+			for (uint j = 0; j < node->mNumScalingKeys; j++) {
+				const aiVectorKey& key = node->mScalingKeys[j];
+				skNode.scaling[key.mTime / skeletalAnim->mTicksPerSecond] = QVector3D(key.mValue.x, key.mValue.y, key.mValue.z);
+			}
+			for (uint j = 0; j < node->mNumPositionKeys; j++) {
+				const aiVectorKey& key = node->mPositionKeys[j];
+				skNode.translation[key.mTime / skeletalAnim->mTicksPerSecond] = QVector3D(key.mValue.x, key.mValue.y, key.mValue.z);
+			}
+			for (uint j = 0; j < node->mNumRotationKeys; j++) {
+				const aiQuatKey& key = node->mRotationKeys[j];
+				skNode.rotation[key.mTime / skeletalAnim->mTicksPerSecond] = QQuaternion(key.mValue.w, key.mValue.x, key.mValue.y, key.mValue.z);
+			}
+		}
+		skeletalMesh->mAnimations << skeletalAnim;
+	}
+	skeletalMesh->playAnimation(0);
 	return skeletalMesh;
 }
 
@@ -120,3 +146,83 @@ void QSkeletalMesh::resetPoses() {
 	}
 }
 
+void QSkeletalMesh::playAnimation(int inAnimIndex) {
+	if (inAnimIndex >= 0 && inAnimIndex < mAnimations.size()) {
+		auto animation = mAnimations[inAnimIndex];
+		if (!mAnimPlayer)
+			mAnimPlayer.reset(new QVariantAnimation);
+		if (mAnimPlayer->state() == QAbstractAnimation::Running) {
+			mAnimPlayer->stop();
+			mAnimPlayer->disconnect();
+		}
+		QObject::connect(mAnimPlayer.get(), &QVariantAnimation::valueChanged, [this, inAnimIndex](QVariant var) {
+			processBoneTransform(mAnimations[inAnimIndex].get(), var.toDouble());
+		});
+		mAnimPlayer->setStartValue(0.0);
+		mAnimPlayer->setEndValue(animation->mDuration / animation->mTicksPerSecond);
+		mAnimPlayer->setDuration(animation->mDuration / animation->mTicksPerSecond * 1000.0f);
+		mAnimPlayer->setLoopCount(-1);
+		mAnimPlayer->start();
+	}
+}
+
+void QSkeletalMesh::processBoneTransform(QSkeletalAnimation* inAnim, double inTimeMs) {
+	inTimeMs = fmod(inTimeMs, inAnim->mDuration / inAnim->mTicksPerSecond);
+	mCurrentPosesMatrix.resize(mSkeleton->mBoneOffsetMatrix.size());
+	QQueue<QPair<QSharedPointer<QSkeleton::MeshNode>, QMatrix4x4>> qNode;
+	qNode.push_back({ mSkeleton->mMeshRoot ,QMatrix4x4() });
+	while (!qNode.isEmpty()) {
+		QPair<QSharedPointer<QSkeleton::MeshNode>, QMatrix4x4> node = qNode.takeFirst();
+		QMatrix4x4 nodeMat = node.first->localTransform;
+		auto animNodeIter = inAnim->mAnimNode.find(node.first->name);
+		if (animNodeIter != inAnim->mAnimNode.end()) {
+			nodeMat = animNodeIter->getMatrix(inTimeMs);
+		}
+		QMatrix4x4 globalMatrix = node.second * nodeMat;
+		auto boneIter = mSkeleton->mBoneMap.find(node.first->name);
+		if (boneIter != mSkeleton->mBoneMap.end()) {
+			const int& index = (*boneIter)->index;
+			mCurrentPosesMatrix[index] = (globalMatrix * QMatrix4x4(mSkeleton->mBoneOffsetMatrix[index])).toGenericMatrix<4, 4>();
+		}
+		for (unsigned int i = 0; i < node.first->children.size(); i++) {
+			qNode.push_back({ node.first->children[i] ,globalMatrix });
+		}
+	}
+}
+
+QVector3D interp(const QVector3D& start, const QVector3D& end, double factor) {
+	Q_ASSERT(factor >= 0 && factor <= 1);
+	return start + (end - start) * factor;
+}
+
+QMatrix4x4 QSkeletalAnimation::AnimNode::getMatrix(const double& timeMs) {
+	QMatrix4x4 mat;
+	auto endTranslation = translation.upperBound(timeMs);
+	auto startTranslation = endTranslation == translation.begin() ? endTranslation : endTranslation - 1;
+	if (endTranslation != translation.end()) {
+		double deltaTime = endTranslation.key() - startTranslation.key();
+		double factor = deltaTime == 0 ? 0 : (timeMs - startTranslation.key()) / deltaTime;
+		mat.translate(interp(startTranslation.value(), endTranslation.value(), factor));
+	}
+	else
+		mat.translate(startTranslation.value());
+	auto endRotation = rotation.upperBound(timeMs);
+	auto startRotation = endRotation == rotation.begin() ? endRotation : endRotation - 1;
+	if (endRotation != rotation.end()) {
+		double deltaTime = endRotation.key() - startRotation.key();
+		double factor = deltaTime == 0 ? 0 : (timeMs - startRotation.key()) / deltaTime;
+		mat.rotate(QQuaternion::nlerp(startRotation.value(), endRotation.value(), factor).normalized());
+	}
+	else
+		mat.rotate(startRotation.value().normalized());
+	auto endScaling = scaling.upperBound(timeMs);
+	auto startScaling = endScaling == scaling.begin() ? endScaling : endScaling - 1;
+	if (endScaling != scaling.end()) {
+		double deltaTime = endScaling.key() - startScaling.key();
+		double factor = deltaTime == 0 ? 0 : (timeMs - startScaling.key()) / deltaTime;
+		mat.scale(interp(startScaling.value(), endScaling.value(), factor));
+	}
+	else
+		mat.scale(startScaling.value());
+	return mat;
+}
