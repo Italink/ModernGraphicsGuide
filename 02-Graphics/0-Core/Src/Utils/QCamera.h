@@ -13,7 +13,6 @@ class QCamera :public QObject {
 		Q_PROPERTY(float MoveSpeed READ getMoveSpeed WRITE setMoveSpeed)
 		Q_PROPERTY(float RotationSpeed READ getRotationSpeed WRITE setRotationSpeed)
 public:
-
 	QCamera();
 	QMatrix4x4 getViewMatrix();
 
@@ -52,7 +51,7 @@ private:
 
 	float mFov = 45.0f;
 	float mAspectRatio = 1.0;
-	float mNearPlane = 0.01f;
+	float mNearPlane = 0.1f;
 	float mFarPlane = 10000.0f;
 
 	QVector3D mCameraDirection;

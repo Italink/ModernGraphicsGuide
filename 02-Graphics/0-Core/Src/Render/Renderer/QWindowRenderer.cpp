@@ -10,6 +10,7 @@ QWindowRenderer::QWindowRenderer(QRhiWindow* inWindow)
 
 void QWindowRenderer::render()
 {
+	IRenderer::render();
 	mFrameGraph->render(mWindow->mSwapChain->currentFrameCommandBuffer());
 }
 

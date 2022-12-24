@@ -76,12 +76,12 @@ QSkyboxRenderComponent* QSkyboxRenderComponent::setupSkyBoxImage(QImage inImage)
 	mSubImageList[4] = inImage.copy(QRect(QPoint(mCubeFaceSize.width(), mCubeFaceSize.width()), mCubeFaceSize));
 	mSubImageList[5] = inImage.copy(QRect(QPoint(3 * mCubeFaceSize.width(), mCubeFaceSize.width()), mCubeFaceSize));
 
-	sigRecreateResource.request();
-	sigRecreatePipeline.request();
+	sigonRebuildResource.request();
+	sigonRebuildPipeline.request();
 	return this;
 }
 
-void QSkyboxRenderComponent::recreateResource() {
+void QSkyboxRenderComponent::onRebuildResource() {
 	mTexture.reset(mRhi->newTexture(QRhiTexture::RGBA8, mSubImageList.front().size(), 1,
 		QRhiTexture::CubeMap
 		| QRhiTexture::MipMapped
@@ -101,9 +101,9 @@ void QSkyboxRenderComponent::recreateResource() {
 	mVertexBuffer->create();
 }
 
-void QSkyboxRenderComponent::recreatePipeline() {
+void QSkyboxRenderComponent::onRebuildPipeline() {
 	mPipeline.reset(mRhi->newGraphicsPipeline());
-	QVector<QRhiGraphicsPipeline::TargetBlend> blendStates(sceneRenderPass()->getBlendStateCount());
+	QVector<QRhiGraphicsPipeline::TargetBlend> blendStates(sceneRenderPass()->getRenderTargetCount());
 	mPipeline->setTargetBlends(blendStates.begin(), blendStates.end());
 	mPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
 	mPipeline->setDepthTest(true);
@@ -172,7 +172,7 @@ void QSkyboxRenderComponent::recreatePipeline() {
 	mPipeline->create();
 }
 
-void QSkyboxRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
+void QSkyboxRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
 	batch->uploadStaticBuffer(mVertexBuffer.get(), CubeData);
 
 	QRhiTextureSubresourceUploadDescription subresDesc[6];
@@ -192,16 +192,16 @@ void QSkyboxRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
 	batch->generateMips(mTexture.get());
 }
 
-void QSkyboxRenderComponent::updatePrePass(QRhiCommandBuffer* cmdBuffer) {
+void QSkyboxRenderComponent::onPreUpdate(QRhiCommandBuffer* cmdBuffer) {
 
 }
 
-void QSkyboxRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* batch) {
+void QSkyboxRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {
 	QMatrix4x4 MVP = calculateMatrixMVP();
 	batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(QMatrix4x4), MVP.constData());
 }
 
-void QSkyboxRenderComponent::renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
+void QSkyboxRenderComponent::onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
 	cmdBuffer->setGraphicsPipeline(mPipeline.get());
 	cmdBuffer->setViewport(viewport);
 	cmdBuffer->setShaderResources();

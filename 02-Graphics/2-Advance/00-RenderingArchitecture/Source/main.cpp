@@ -1,6 +1,6 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/IRenderComponent.h"
 
 static float VertexData[] = {
@@ -15,11 +15,11 @@ class QTriangleRenderComponent : public IRenderComponent {
 	QScopedPointer<QRhiShaderResourceBindings> mShaderBindings;
 	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
 protected:
-	void recreateResource() override {
+	void onRebuildResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
     }
-	void recreatePipeline() override {
+	void onRebuildPipeline() override {
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());
 		mShaderBindings->create();
 
@@ -74,11 +74,11 @@ void main(){
 		mPipeline->create();
     }
 
-    void uploadResource(QRhiResourceUpdateBatch* batch) override {
+    void onUpload(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
     }
 
-    void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
+    void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
         cmdBuffer->setGraphicsPipeline(mPipeline.get());
         cmdBuffer->setViewport(viewport);
         cmdBuffer->setShaderResources();
@@ -95,7 +95,7 @@ int main(int argc, char **argv){
     QRendererWidget widget(initParams);
 	widget.setFrameGraph(
         QFrameGraphBuilder::begin()
-        ->node("Triangle", (new QDefaultSceneRenderPass())
+        ->addPass("Triangle", (new QSceneOutputRenderPass())
 				->addRenderComponent(new QTriangleRenderComponent())
         )
         ->end()

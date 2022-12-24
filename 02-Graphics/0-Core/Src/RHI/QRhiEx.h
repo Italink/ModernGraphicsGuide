@@ -2,8 +2,7 @@
 #define QRhiEx_h__
 
 #include "private/qrhi_p.h"
-#include "private/qrhi_p_p.h"
-#include "private/qrhivulkan_p_p.h"
+#include "private/qrhivulkan_p.h"
 #include <QWindow>
 
 class QRhiEx: public QRhi {

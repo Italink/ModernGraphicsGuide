@@ -1,6 +1,6 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/RenderComponent/QSkyboxRenderComponent.h"
 
 int main(int argc, char** argv) {
@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 	widget.setupCamera();
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
-		->node("Triangle", (new QDefaultSceneRenderPass())
+		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent((new QSkyboxRenderComponent())
 				->setupSkyBoxImage(QImage(PROJECT_PATH"/Skybox.jpeg"))
 			)

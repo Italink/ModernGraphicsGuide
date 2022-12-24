@@ -1,7 +1,7 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
 #include "Render/QFrameGraph.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/RenderComponent/QStaticMeshRenderComponent.h"
 
 int main(int argc, char **argv)
@@ -15,7 +15,7 @@ int main(int argc, char **argv)
 	widget.setupCamera();
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
-		->node("Triangle", (new QDefaultSceneRenderPass())
+		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent((new QStaticMeshRenderComponent)
 				->setupStaticMeshPath(PROJECT_PATH"/Genji/Genji.FBX")
 			)

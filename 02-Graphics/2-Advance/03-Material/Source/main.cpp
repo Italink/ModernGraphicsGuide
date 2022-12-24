@@ -1,6 +1,6 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/RenderComponent/ISceneRenderComponent.h"
 #include "Core/QMetaDataDefine.h"
 #include "Render/QRhiGraphicsPipelineBuilder.h"
@@ -18,16 +18,16 @@ private:
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
 	QRhiGraphicsPipelineBuilder* Pipeline;
 protected:
-	void recreateResource() override {
+	void onRebuildResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 		Pipeline = new QRhiGraphicsPipelineBuilder(this);
 		Pipeline->setParent(this);
 		Pipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
-			->addMat4("MVP", QGenericMatrix<4,4,float>());
+			->addParam("MVP", QGenericMatrix<4,4,float>());
 
 		Pipeline->addUniformBlock(QRhiShaderStage::Fragment, "Material")
-			->addVec4("Color", QVector4D(1, 0.0, 0, 1));
+			->addParam("Color", QVector4D(1, 0.0, 0, 1));
 
 		Pipeline->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(float) * 2)
@@ -47,20 +47,20 @@ void main(){
 }
 )");
 	}
-	void recreatePipeline() override {
+	void onRebuildPipeline() override {
 		Pipeline->create(this);
 	}
-	void uploadResource(QRhiResourceUpdateBatch* batch) override {
+	void onUpload(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
-	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
-		Pipeline->getUniformBlock("Transform")->setMat4("MVP", calculateMatrixMVP().toGenericMatrix<4, 4>());
+	void onUpdate(QRhiResourceUpdateBatch* batch) override {
+		Pipeline->getUniformBlock("Transform")->setParamValue("MVP", calculateMatrixMVP().toGenericMatrix<4, 4>());
 		Pipeline->update(batch);
 		if (Pipeline->sigRebuild.receive()) {
-			sigRecreatePipeline.request();
+			sigonRebuildPipeline.request();
 		}
 	}
-	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
+	void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
 		cmdBuffer->setGraphicsPipeline(Pipeline->getGraphicsPipeline());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
 	widget.setupCamera();
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
-		->node("Triangle", (new QDefaultSceneRenderPass())
+		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent(new QTriangleRenderComponent())
 		)
 		->end()

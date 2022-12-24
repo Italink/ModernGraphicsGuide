@@ -2,32 +2,47 @@
 #define QParticlesRenderComponent_h__
 
 #include "ISceneRenderComponent.h"
-#include "Render/QRhiGraphicsPipelineBuilder.h"
-#include "Asset/QStaticMesh.h"
+#include "Asset/QParticleSystem.h"
+#include "Utils/QColor4D.h"
 
 class QParticlesRenderComponent :public ISceneRenderComponent {
 	Q_OBJECT
-	Q_PROPERTY(QString StaticMeshPath READ getStaticMeshPath WRITE setupStaticMeshPath)
-		Q_META_BEGIN(QParticlesRenderComponent)
-			Q_META_P_STRING_AS_FILE_PATH(StaticMeshPath)
-		Q_META_END()
+		Q_PROPERTY(QColor4D Color READ getColor WRITE setupColor)
 public:
-	QParticlesRenderComponent(const QString& inStaticMeshPath = QString());
-	QString getStaticMeshPath() const;
-	QParticlesRenderComponent* setupStaticMeshPath(QString inPath);
+	QParticlesRenderComponent();
+	QParticlesRenderComponent* setupColor(QColor4D val);
+	QParticlesRenderComponent* setType(QParticleSystem::Type inType);
+
+	QParticleSystem::Type getType();
+	QColor4D getColor() const;
 protected:
-	void recreateResource() override;
-	void recreatePipeline() override;
-	void uploadResource(QRhiResourceUpdateBatch* batch) override;
-	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override;
-	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override;
+	void onRebuildResource() override;
+	void onRebuildPipeline() override;
+	void onPreUpdate(QRhiCommandBuffer* cmdBuffer) override;
+	void onUpload(QRhiResourceUpdateBatch* batch) override;
+	void onUpdate(QRhiResourceUpdateBatch* batch) override;
+	void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override;
 	bool isVaild() override;
 protected:
-	QString mStaticMeshPath;
-	QSharedPointer<QStaticMesh> mStaticMesh;
+	QSharedPointer<QParticleSystem> mParticleSystem;
+	QScopedPointer<QRhiBuffer> mIndirectDrawBuffer;
 	QScopedPointer<QRhiBuffer> mVertexBuffer;
-	QScopedPointer<QRhiBuffer> mIndexBuffer;
-	QVector<QRhiGraphicsPipelineBuilder*> mPipelines;
+	QScopedPointer<QRhiBuffer> mUniformBuffer;
+	QScopedPointer<QRhiGraphicsPipeline> mPipeline;
+	QScopedPointer<QRhiShaderResourceBindings> mBindings;
+
+	struct IndirectDrawBuffer {
+		quint32 vertexCount;
+		quint32 instanceCount = 1;
+		quint32 firstVertex = 0;
+		quint32 firstInstance = 0;
+	};
+	struct UniformBlock {
+		QGenericMatrix<4, 4, float> MVP;
+		QGenericMatrix<4, 4, float> M;
+		QVector4D color;
+	};
+	QColor4D mColor = QColor4D(0.1f, 0.5f, 0.9f, 1.0f);
 };
 
 #endif // QParticlesRenderComponent_h__

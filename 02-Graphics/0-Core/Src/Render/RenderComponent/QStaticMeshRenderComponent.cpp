@@ -12,12 +12,12 @@ QString QStaticMeshRenderComponent::getStaticMeshPath() const {
 QStaticMeshRenderComponent* QStaticMeshRenderComponent::setupStaticMeshPath(QString inPath) {
 	mStaticMeshPath = inPath;
 	mStaticMesh = QStaticMesh::loadFromFile(inPath);
-	sigRecreateResource.request();
-	sigRecreatePipeline.request();
+	sigonRebuildResource.request();
+	sigonRebuildPipeline.request();
 	return this;
 }
 
-void QStaticMeshRenderComponent::recreateResource() {
+void QStaticMeshRenderComponent::onRebuildResource() {
 	if (mStaticMesh.isNull())
 		return;
 
@@ -78,19 +78,19 @@ void main(){
 	}
 }
 
-void QStaticMeshRenderComponent::recreatePipeline() {
+void QStaticMeshRenderComponent::onRebuildPipeline() {
 	for (auto& pipeline : mPipelines) {
 		pipeline->create(this);
 	}
 }
 
-void QStaticMeshRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
+void QStaticMeshRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
 	batch->uploadStaticBuffer(mVertexBuffer.get(), mStaticMesh->mVertices.constData());
 	batch->uploadStaticBuffer(mIndexBuffer.get(), mStaticMesh->mIndices.constData());
 	
 }
 
-void QStaticMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* batch) {
+void QStaticMeshRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {
 	for (int i = 0; i < mPipelines.size(); i++) {
 		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
 		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];
@@ -100,12 +100,12 @@ void QStaticMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* 
 		pipeline->getUniformBlock("Transform")->setParamValue("M", QVariant::fromValue(M.toGenericMatrix<4, 4>()));
 		pipeline->update(batch);
 		if (pipeline->sigRebuild.receive()) {
-			sigRecreatePipeline.request();
+			sigonRebuildPipeline.request();
 		}
 	}
 }
 
-void QStaticMeshRenderComponent::renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
+void QStaticMeshRenderComponent::onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
 	for (int i = 0; i < mPipelines.size(); i++) {
 		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
 		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];

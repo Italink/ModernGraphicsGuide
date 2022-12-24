@@ -2,7 +2,8 @@
 #include <QFile>
 #include "private\qshaderbaker_p.h"
 #include "private\qrhivulkan_p.h"
-
+#include "private/qrhi_p_p.h"
+#include "private/qrhivulkan_p_p.h"
 #ifndef QT_NO_OPENGL
 #include <QOffscreenSurface>
 #include "private\qrhigles2_p.h"
@@ -18,8 +19,6 @@
 
 #include "QVulkanInstance"
 #include <QtGui/private/qrhinull_p.h>
-#include "Customization\QDetailWidgetManager.h"
-#include "DetailCustomization\QInstacneDetail_QRhiUniformBlock.h"
 
 #include "private/qrhivulkanext_p.h"
 
@@ -39,6 +38,7 @@ QT_WARNING_DISABLE_GCC("-Wsuggest-override")
 QT_WARNING_DISABLE_CLANG("-Wdeprecated-copy")
 #endif
 #include "Utils\vk_mem_alloc.h"
+#include "DetailCustomization\RegisterEntry.h"
 QT_WARNING_POP
 
 
@@ -59,18 +59,25 @@ bool QRhiEx::Signal::peek() {
 }
 
 void QRhiEx::globalInitialize() {
-	QDetailWidgetManager::instance()->RegisterInstanceFilter<QInstacneDetail_QRhiUniformBlock>();
+	RegisterDetailCustomization();
 }
 
 QVulkanInstance* QRhiEx::getVkInstance() {
-	static QVulkanInstance vkInstance;
-	if (!vkInstance.isValid()) {
-		vkInstance.setLayers({ "VK_LAYER_KHRONOS_validation" });
-		vkInstance.setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
-		if (!vkInstance.create())
+
+	static QVulkanInstance* vkInstance = nullptr;
+	if (!vkInstance) {
+		vkInstance = new QVulkanInstance;
+		vkInstance->setExtensions(QRhiVulkanInitParams::preferredInstanceExtensions());
+		vkInstance->setLayers({ "VK_LAYER_KHRONOS_validation" });
+		const QVersionNumber supportedVersion = vkInstance->supportedApiVersion();
+		if (supportedVersion >= QVersionNumber(1, 2)) {
+			qDebug("Requesting Vulkan API 1.2 on the VkInstance");
+			vkInstance->setApiVersion(QVersionNumber(1, 2));
+		}
+		if (!vkInstance->create())
 			qFatal("Failed to create Vulkan instance");
 	}
-	return &vkInstance;
+	return vkInstance;
 }
 
 QSharedPointer<QRhiEx> QRhiEx::newRhiEx(QRhi::Implementation inBackend /*= QRhi::Vulkan*/, QRhi::Flags inFlags /*= QRhi::Flag()*/, QWindow* inWindow /*= nullptr*/) {

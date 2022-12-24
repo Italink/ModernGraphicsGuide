@@ -1,123 +1,193 @@
 #include "QParticlesRenderComponent.h"
 #include "Render/IRenderPass.h"
+#include "QVulkanInstance"
+#include "qvulkanfunctions.h"
 
-QParticlesRenderComponent::QParticlesRenderComponent(const QString& inStaticMeshPath) {
-	setupStaticMeshPath(inStaticMeshPath);
+static float ParticleShape[] = {
+	//position(xy)	
+	 0.01f,   0.01f,
+	-0.01f,   0.01f,
+	 0.01f,  -0.01f,
+	-0.01f,  -0.01f,
+};
+
+QParticlesRenderComponent::QParticlesRenderComponent() {
+	setType(QParticleSystem::Type::GPU);
 }
 
-QString QParticlesRenderComponent::getStaticMeshPath() const {
-	return mStaticMeshPath;
-}
-
-QParticlesRenderComponent* QParticlesRenderComponent::setupStaticMeshPath(QString inPath) {
-	mStaticMeshPath = inPath;
-	mStaticMesh = QStaticMesh::loadFromFile(inPath);
-	sigRecreateResource.request();
-	sigRecreatePipeline.request();
+QParticlesRenderComponent* QParticlesRenderComponent::setupColor(QColor4D val) {
+	mColor = val;
 	return this;
 }
 
-void QParticlesRenderComponent::recreateResource() {
-	if (mStaticMesh.isNull())
-		return;
-
-	mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::VertexBuffer, sizeof(QStaticMesh::Vertex) * mStaticMesh->mVertices.size()));
-	mVertexBuffer->create();
-	mIndexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Type::Static, QRhiBuffer::IndexBuffer, sizeof(QStaticMesh::Index) * mStaticMesh->mIndices.size()));
-	mIndexBuffer->create();
-
-	for (auto& subMesh : mStaticMesh->mSubmeshes) {
-		QRhiGraphicsPipelineBuilder* pipeline = new QRhiGraphicsPipelineBuilder(this);
-		mPipelines << pipeline;
-		pipeline->addUniformBlock(QRhiShaderStage::Vertex, "Transform")
-			->addParam("MVP", QGenericMatrix<4, 4, float>())
-			->addParam("M", QGenericMatrix<4, 4, float>());
-
-		pipeline->setInputBindings({
-			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(QStaticMesh::Vertex))
-		});
-
-		pipeline->setInputAttribute({
-			QRhiVertexInputAttributeEx("inPosition"	,0, 0, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,position)),
-			QRhiVertexInputAttributeEx("inNormal"	,0, 1, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,normal)),
-			QRhiVertexInputAttributeEx("inTangent"	,0, 2, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,tangent)),
-			QRhiVertexInputAttributeEx("inBitangent",0, 3, QRhiVertexInputAttribute::Float3, offsetof(QStaticMesh::Vertex,bitangent)),
-			QRhiVertexInputAttributeEx("inUV"		,0, 4, QRhiVertexInputAttribute::Float2, offsetof(QStaticMesh::Vertex,texCoord))
-		});
-
-		pipeline->setShaderMainCode(QRhiShaderStage::Vertex, R"(
-layout(location = 0) out vec2 vUV;
-layout(location = 1) out vec3 vWorldPosition;
-layout(location = 2) out mat3 vTangentBasis;
-void main(){
-	vUV = inUV;
-	vWorldPosition = vec3(Transform.M * vec4(inPosition,1.0f));
-	vTangentBasis =  mat3(Transform.M) * mat3(inTangent, inBitangent, inNormal);
-	gl_Position = Transform.MVP * vec4(inPosition,1.0f);
-}
-)");
-	if (subMesh.materialInfo.contains("Diffuse")) {
-		pipeline->addTexture(QRhiShaderStage::Fragment, "Diffuse", subMesh.materialInfo["Diffuse"]);
-		pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
-		layout(location = 0) in vec2 vUV;
-		layout(location = 1) in vec3 vWorldPosition;
-		layout(location = 2) in mat3 vTangentBasis;
-		void main(){
-			FragColor = texture(Diffuse,vUV);
-		})");
+QParticlesRenderComponent* QParticlesRenderComponent::setType(QParticleSystem::Type inType) {
+	if (inType == QParticleSystem::Type::CPU){
 	}
 	else {
-		pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
-		layout(location = 0) in vec2 vUV;
-		layout(location = 1) in vec3 vWorldPosition;
-		layout(location = 2) in mat3 vTangentBasis;
-		void main(){
-			FragColor = vec4(vTangentBasis[2],1);
-		})");
+		mParticleSystem.reset(new QGPUParticleSystem);
 	}
-	}
+	sigonRebuildResource.request();
+	sigonRebuildPipeline.request();
+	return this;
 }
 
-void QParticlesRenderComponent::recreatePipeline() {
-	for (auto& pipeline : mPipelines) {
-		pipeline->create(this);
-	}
+QParticleSystem::Type QParticlesRenderComponent::getType() {
+	return mParticleSystem->type();
 }
 
-void QParticlesRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
-	batch->uploadStaticBuffer(mVertexBuffer.get(), mStaticMesh->mVertices.constData());
-	batch->uploadStaticBuffer(mIndexBuffer.get(), mStaticMesh->mIndices.constData());
-	
+QColor4D QParticlesRenderComponent::getColor() const {
+	return mColor;
 }
 
-void QParticlesRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* batch) {
-	for (int i = 0; i < mPipelines.size(); i++) {
-		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
-		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];
-		QMatrix4x4 MVP = calculateMatrixMVP() * meshInfo.localTransfrom;
-		QMatrix4x4 M = calculateMatrixModel() * meshInfo.localTransfrom;
-		pipeline->getUniformBlock("Transform")->setParamValue("MVP", QVariant::fromValue(MVP.toGenericMatrix<4, 4>()));
-		pipeline->getUniformBlock("Transform")->setParamValue("M", QVariant::fromValue(M.toGenericMatrix<4, 4>()));
-		pipeline->update(batch);
-		if (pipeline->sigRebuild.receive()) {
-			sigRecreatePipeline.request();
-		}
+void QParticlesRenderComponent::onRebuildResource() {
+	mParticleSystem->onInit(mRhi);
+
+	mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Static, QRhiBuffer::UsageFlag::VertexBuffer, sizeof(ParticleShape)));
+	mVertexBuffer->create();
+
+	mUniformBuffer.reset(mRhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UsageFlag::UniformBuffer, sizeof(UniformBlock)));
+	mUniformBuffer->create();
+
+	if (mParticleSystem && mParticleSystem->type() == QParticleSystem::Type::GPU) {
+		mIndirectDrawBuffer.reset(mRhi->newVkBuffer(QRhiBuffer::Static, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(IndirectDrawBuffer)));
+		mIndirectDrawBuffer->create();
+		mIndirectDrawBuffer->setName("IndirectDrawBuffer");
 	}
 }
 
-void QParticlesRenderComponent::renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
-	for (int i = 0; i < mPipelines.size(); i++) {
-		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
-		const QStaticMesh::SubMeshInfo& meshInfo = mStaticMesh->mSubmeshes[i];
-		cmdBuffer->setGraphicsPipeline(pipeline->getGraphicsPipeline());
+void QParticlesRenderComponent::onRebuildPipeline() {
+	QRhiVertexInputLayout inputLayout;
+	inputLayout.setBindings({
+		QRhiVertexInputBinding(sizeof(float) * 2),
+		QRhiVertexInputBinding(sizeof(float) * 16, QRhiVertexInputBinding::Classification::PerInstance),
+	});
+	inputLayout.setAttributes({
+		QRhiVertexInputAttribute( 0, 0, QRhiVertexInputAttribute::Float2, 0 ),
+		QRhiVertexInputAttribute( 1, 1, QRhiVertexInputAttribute::Float4, 0,0 ),
+		QRhiVertexInputAttribute( 1, 2, QRhiVertexInputAttribute::Float4, 4 * sizeof(float),1 ),
+		QRhiVertexInputAttribute( 1, 3, QRhiVertexInputAttribute::Float4, 8 * sizeof(float),2 ),
+		QRhiVertexInputAttribute( 1, 4, QRhiVertexInputAttribute::Float4, 12 * sizeof(float),3 ),
+	});
+	QShader vs = mRhi->newShaderFromCode(QShader::Stage::VertexStage, R"(#version 440
+	layout(location = 0) in vec2 inPosition;
+	layout(location = 1) in mat4 inInstTransform;
+	layout(location = 0) out vec4 vColor;
+	layout(std140,binding = 0) uniform UniformBuffer{
+		mat4 MVP;
+		mat4 M;
+		vec4 color;
+	}UBO;
+
+	out gl_PerVertex{
+		vec4 gl_Position;
+	};
+	void main(){
+		vec4 pos = inInstTransform * vec4(inPosition,0.0f,1.0f);
+		gl_Position = UBO.MVP * pos;
+		vColor = UBO.color;
+	}
+)");
+
+	QShader fs = mRhi->newShaderFromCode(QShader::Stage::FragmentStage, R"(#version 440
+layout(location = 0) in vec4 vColor;
+layout(location = 0) out vec4 outBaseColor;
+void main(){
+	outBaseColor = vColor;
+}
+)");
+
+	mPipeline.reset(mRhi->newGraphicsPipeline());
+	mPipeline->setVertexInputLayout(inputLayout);
+	QVector<QRhiGraphicsPipeline::TargetBlend> targetBlends(sceneRenderPass()->getRenderTargetCount());
+	mPipeline->setTargetBlends(targetBlends.begin(), targetBlends.end());
+	mPipeline->setTopology(QRhiGraphicsPipeline::Topology::TriangleStrip);
+	mPipeline->setDepthOp(QRhiGraphicsPipeline::LessOrEqual);
+	mPipeline->setDepthTest(true);
+	mPipeline->setDepthWrite(true);
+	mPipeline->setSampleCount(sceneRenderPass()->getSampleCount());
+
+	mPipeline->setShaderStages({
+		{ QRhiShaderStage::Vertex, vs },
+		{ QRhiShaderStage::Fragment, fs }
+		});
+	mBindings.reset(mRhi->newShaderResourceBindings());
+	mBindings->setBindings({
+		 QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage, mUniformBuffer.get())
+	});
+	mBindings->create();
+	mPipeline->setShaderResourceBindings(mBindings.get());
+	mPipeline->setRenderPassDescriptor(sceneRenderPass()->getRenderPassDescriptor());
+	mPipeline->create();
+}
+
+void QParticlesRenderComponent::onPreUpdate(QRhiCommandBuffer* cmdBuffer){
+	 mParticleSystem->onTick(cmdBuffer);
+	 if (mParticleSystem->type() == QParticleSystem::Type::GPU) {
+		 QGPUParticleSystem* gpuSystem = static_cast<QGPUParticleSystem*>(mParticleSystem.get());
+		 QRhiVulkanCommandBufferNativeHandles* vkCmdBufferHandle = (QRhiVulkanCommandBufferNativeHandles*)cmdBuffer->nativeHandles();
+		 QRhiVulkanNativeHandles* vkHandles = (QRhiVulkanNativeHandles*)mRhi->nativeHandles();
+		 VkBuffer indirectDispatchBuffer = *(VkBuffer*)gpuSystem->getCurrentIndirectBuffer()->nativeBuffer().objects[0];
+		 VkBuffer indirectDrawBuffer = *(VkBuffer*)mIndirectDrawBuffer->nativeBuffer().objects[0];
+		 QVulkanInstance* vkInstance = mRhi->getVkInstance();
+		 VkBufferCopy bufferCopy;
+		 bufferCopy.srcOffset = 0;
+		 bufferCopy.dstOffset = offsetof(IndirectDrawBuffer, instanceCount);
+		 bufferCopy.size = sizeof(int);
+		 vkInstance->deviceFunctions(vkHandles->dev)->vkCmdCopyBuffer(vkCmdBufferHandle->commandBuffer, indirectDispatchBuffer, indirectDrawBuffer, 1, &bufferCopy);
+	 }
+}
+
+void QParticlesRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
+	batch->uploadStaticBuffer(mVertexBuffer.get(), &ParticleShape);
+	if (mIndirectDrawBuffer) {
+		IndirectDrawBuffer indirectDraw;
+		indirectDraw.vertexCount = 4;
+		indirectDraw.instanceCount = 0;
+		indirectDraw.firstVertex = 0;
+		indirectDraw.firstInstance = 0;
+		batch->uploadStaticBuffer(mIndirectDrawBuffer.get(), &indirectDraw);
+	}
+}
+
+void QParticlesRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {
+	UniformBlock uniform;
+	uniform.MVP = calculateMatrixMVP().toGenericMatrix<4, 4>();
+	uniform.M = calculateMatrixModel().toGenericMatrix<4, 4>();
+	uniform.color = QVector4D(mColor.redF(), mColor.greenF(), mColor.blueF(), mColor.alphaF());
+	batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(UniformBlock), &uniform);
+}
+
+void QParticlesRenderComponent::onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
+	if (mParticleSystem->type() == QParticleSystem::Type::GPU) {
+		cmdBuffer->setGraphicsPipeline(mPipeline.get());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
-		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), meshInfo.verticesOffset * sizeof (QStaticMesh::Vertex));
-		cmdBuffer->setVertexInput(0, 1, &vertexBindings, mIndexBuffer.get(), meshInfo.indicesOffset * sizeof(QStaticMesh::Index), QRhiCommandBuffer::IndexUInt32);
-		cmdBuffer->drawIndexed(meshInfo.indicesRange);
+		QRhiCommandBuffer::VertexInput VertexInputs[] = {
+			{mVertexBuffer.get(), 0},
+			{mParticleSystem->getTransformBuffer(),0 }
+		};
+		cmdBuffer->setVertexInput(0, 2, VertexInputs);
+		QRhiVulkanCommandBufferNativeHandles* vkCmdBufferHandle = (QRhiVulkanCommandBufferNativeHandles*)cmdBuffer->nativeHandles();
+		QRhiVulkanNativeHandles* vkHandles = (QRhiVulkanNativeHandles*)mRhi->nativeHandles();
+		auto buffer = mIndirectDrawBuffer->nativeBuffer();
+		VkBuffer vkBuffer = *(VkBuffer*)buffer.objects[0];
+		QVulkanInstance* vkInstance = mRhi->getVkInstance();
+		vkInstance->deviceFunctions(vkHandles->dev)->vkCmdDrawIndirect(vkCmdBufferHandle->commandBuffer, vkBuffer, 0, 1, sizeof(IndirectDrawBuffer));
+	}
+	else {
+		cmdBuffer->setGraphicsPipeline(mPipeline.get());
+		cmdBuffer->setViewport(viewport);
+		cmdBuffer->setShaderResources();
+		QRhiCommandBuffer::VertexInput VertexInputs[] = {
+			{mVertexBuffer.get(), 0},
+			{mParticleSystem->getTransformBuffer(),0 }
+		};
+		cmdBuffer->setVertexInput(0, 2, VertexInputs);
+		cmdBuffer->beginExternal();
+		cmdBuffer->draw(4);
 	}
 }
 
 bool QParticlesRenderComponent::isVaild() {
-	return !mStaticMesh.isNull();
+	return !mParticleSystem.isNull();
 }

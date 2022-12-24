@@ -16,11 +16,11 @@ public:
 	QString getStaticMeshPath() const;
 	QSkeletalMeshRenderComponent* setupStaticMeshPath(QString inPath);
 protected:
-	void recreateResource() override;
-	void recreatePipeline() override;
-	void uploadResource(QRhiResourceUpdateBatch* batch) override;
-	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override;
-	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override;
+	void onRebuildResource() override;
+	void onRebuildPipeline() override;
+	void onUpload(QRhiResourceUpdateBatch* batch) override;
+	void onUpdate(QRhiResourceUpdateBatch* batch) override;
+	void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override;
 	bool isVaild() override;
 protected:
 	QString mStaticMeshPath;

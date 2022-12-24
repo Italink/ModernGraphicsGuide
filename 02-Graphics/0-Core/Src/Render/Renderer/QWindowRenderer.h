@@ -8,10 +8,12 @@ class QRhiWindow;
 class QWindowRenderer : public IRenderer {
 	Q_OBJECT
 public:
+	friend class QRendererWidget;
 	QWindowRenderer(QRhiWindow* inWindow);
-	virtual void render() override;
-	virtual QRhiRenderTarget* renderTaget() override;
-	virtual int sampleCount()override;
+
+	void render() override;
+	QRhiRenderTarget* renderTaget() override;
+	int sampleCount()override;
 private:
 	QRhiWindow* mWindow;
 };

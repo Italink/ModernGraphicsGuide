@@ -1,7 +1,7 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
 #include "Render/QFrameGraph.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/RenderComponent/QSkeletalMeshRenderComponent.h"
 
 int main(int argc, char **argv)
@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 	qputenv("QSG_INFO", "1");
 	QApplication app(argc, argv);
 	QRhiWindow::InitParams initParams;
-	initParams.backend = QRhi::Implementation::Vulkan;
+	initParams.backend = QRhi::Implementation::D3D11;
 	QRendererWidget widget(initParams);
 	widget.setupDetailWidget();
 	QCamera* camera = widget.setupCamera();
@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 	camera->setRotation(QVector3D(-0.225f, 3.0f, 0.0f));
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
-		->node("Triangle", (new QDefaultSceneRenderPass())
+		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent((new QSkeletalMeshRenderComponent)
 				->setupStaticMeshPath(PROJECT_PATH"/Catwalk Walk Turn 180 Tight R.fbx")
 			)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 
-project(GraphicsNinja CXX)
+project(ModernGraphicsGuide CXX)
 
 function(add_example EXAMPLE_PATH)
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_PATH} NAME)

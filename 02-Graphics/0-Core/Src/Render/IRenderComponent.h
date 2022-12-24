@@ -9,16 +9,16 @@ class IRenderComponent: public QObject {
 	Q_OBJECT
 	friend class ISceneRenderPass;
 public:
-	QRhiEx::Signal sigRecreateResource;
-	QRhiEx::Signal sigRecreatePipeline;
+	QRhiEx::Signal sigonRebuildResource;
+	QRhiEx::Signal sigonRebuildPipeline;
 public:
 	virtual bool isVaild() { return true; }
-	virtual void recreateResource() {}
-	virtual void recreatePipeline() {}
-	virtual void uploadResource(QRhiResourceUpdateBatch* batch) {}
-	virtual void updatePrePass(QRhiCommandBuffer* cmdBuffer) {}
-	virtual void updateResourcePrePass(QRhiResourceUpdateBatch* batch) {}
-	virtual void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
+	virtual void onRebuildResource() {}
+	virtual void onRebuildPipeline() {}
+	virtual void onPreUpdate(QRhiCommandBuffer* cmdBuffer) {}
+	virtual void onUpload(QRhiResourceUpdateBatch* batch) {}
+	virtual void onUpdate(QRhiResourceUpdateBatch* batch) {}
+	virtual void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) = 0;
 	ISceneRenderPass* sceneRenderPass() { return mScreenRenderPass; }
 
 protected:

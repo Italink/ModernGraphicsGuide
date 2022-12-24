@@ -1,27 +1,61 @@
-// Copyright (C) 2021 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
-
 #include <QApplication>
-#include "ExampleRhiWidget.h"
-#include "ExampleRhiWindow.h"
+#include "Render/QRendererWidget.h"
+#include "Render/RenderComponent/QParticlesRenderComponent.h"
+#include "Render/RenderPass/QFloatTextureSceneRenderPass.h"
+#include "Render/RenderPass/QPixelFilterRenderPass.h"
+#include "Render/RenderPass/QTextureOutputRenderPass.h"
+#include "Render/RenderPass/QBlurRenderPass.h"
+#include "Render/RenderPass/QBloomMerageRenderPass.h"
 
-int main(int argc, char **argv)
-{
-    qputenv("QSG_INFO", "1");
-    QApplication app(argc, argv);
+static float VertexData[] = {
+	//position(xy)	
+	 0.0f,   0.5f,
+	-0.5f,  -0.5f,
+	 0.5f,  -0.5f,
+};
 
-    QRhiWindow::InitParams initParams;
-    ExampleRhiWindow window(initParams);
-	window.setTitle("01-RhiWindow");
-	window.resize({ 400,400 });
-	window.show();
+int main(int argc, char** argv) {
+	qputenv("QSG_INFO", "1");
+	QApplication app(argc, argv);
+	QRhiWindow::InitParams initParams;
+	initParams.backend = QRhi::Implementation::Vulkan;
+	QRendererWidget widget(initParams);
+	widget.setupDetailWidget();
+	widget.setupCamera();
+	widget.setFrameGraph(
+		QFrameGraphBuilder::begin()
+		->addPass("FloatTexture", (new QFloatTextureSceneRenderPass)
+			->addRenderComponent((new QParticlesRenderComponent)
+				->setupColor(QColor4D(0.2,1,1.8))
+			)
+		)
+		->addPass("BrightPixelFilter", (new QPixelFilterRenderPass)
+			->setupDownSamplerCount(2)
+			->setupFilterCode(R"(
+				const float threshold = 1.0f;
+				void main() {
+					vec4 color = texture(uTexture, vUV);
+					float value = max(max(color.r,color.g),color.b);
+					outFragColor = (1-step(value, threshold)) * color * 100;
+				}
+			)")
+			->setupInputTexture(QPixelFilterRenderPass::InSlot::Src, "FloatTexture", QFloatTextureSceneRenderPass::OutSlot::BaseColor)
+		)
+		->addPass("BloomBlur",(new QBlurRenderPass)
+			->setupBlurIter(1)
+			->setupInputTexture(QBlurRenderPass::InpSlot::Src,"BrightPixelFilter",QPixelFilterRenderPass::OutSlot::FilterResult)
+		)
+		->addPass("BloomMerage", (new QBloomMerageRenderPass)
+			->setupInputTexture(QBloomMerageRenderPass::InSlot::Raw, "FloatTexture", QFloatTextureSceneRenderPass::OutSlot::BaseColor)
+			->setupInputTexture(QBloomMerageRenderPass::InSlot::Blur, "BloomBlur", QBlurRenderPass::OutSlot::BlurResult)
+		)
+		->addPass("TextureOutput", (new QTextureOutputRenderPass)
+			->setupInputTexture(QTextureOutputRenderPass::InSlot::BaseColor, "BloomMerage", QBloomMerageRenderPass::OutSlot::BloomMerageResult)
+		)
+		->end()
+	);
 
-	ExampleRhiWidget widget;
-	widget.setWindowTitle("01-RhiWidget");
-	widget.setApi(QRhiWidget::Vulkan);
-	widget.resize({ 400,400 });
+	widget.resize({ 800,600 });
 	widget.show();
-
-    app.exec();
-    return 0;
+	return app.exec();
 }

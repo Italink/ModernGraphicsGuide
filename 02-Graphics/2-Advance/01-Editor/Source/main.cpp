@@ -1,6 +1,6 @@
 #include <QApplication>
 #include "Render/QRendererWidget.h"
-#include "Render/RenderPass/QDefaultSceneRenderPass.h"
+#include "Render/RenderPass/QSceneOutputRenderPass.h"
 #include "Render/IRenderComponent.h"
 
 static float VertexData[] = {
@@ -23,14 +23,14 @@ public:
 	QColor getColor() const { return mColor; }
 	void setColor(QColor val) { mColor = val; }
 protected:
-	void recreateResource() override {
+	void onRebuildResource() override {
 		mVertexBuffer.reset(mRhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(VertexData)));
 		mVertexBuffer->create();
 
 		mUniformBuffer.reset(mRhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(QVector4D)));
 		mUniformBuffer->create();
 	}
-	void recreatePipeline() override {
+	void onRebuildPipeline() override {
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());
 		mShaderBindings->setBindings({
 			QRhiShaderResourceBinding::uniformBuffer(0,QRhiShaderResourceBinding::FragmentStage,mUniformBuffer.get())
@@ -91,14 +91,14 @@ void main(){
 		mPipeline->create();
 	}
 
-	void uploadResource(QRhiResourceUpdateBatch* batch) override {
+	void onUpload(QRhiResourceUpdateBatch* batch) override {
 		batch->uploadStaticBuffer(mVertexBuffer.get(), VertexData);
 	}
-	void updateResourcePrePass(QRhiResourceUpdateBatch* batch) override {
+	void onUpdate(QRhiResourceUpdateBatch* batch) override {
 		QVector4D vec4(mColor.redF(),mColor.greenF(),mColor.blueF(),mColor.alphaF());
 		batch->updateDynamicBuffer(mUniformBuffer.get(), 0, sizeof(QVector4D), &vec4);
 	}
-	void renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
+	void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override {
 		cmdBuffer->setGraphicsPipeline(mPipeline.get());
 		cmdBuffer->setViewport(viewport);
 		cmdBuffer->setShaderResources();
@@ -116,7 +116,7 @@ int main(int argc, char** argv) {
 	widget.setupDetailWidget();
 	widget.setFrameGraph(
 		QFrameGraphBuilder::begin()
-		->node("Triangle", (new QDefaultSceneRenderPass())
+		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent(new QTriangleRenderComponent())
 		)
 		->end()

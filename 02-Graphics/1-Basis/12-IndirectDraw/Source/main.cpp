@@ -31,21 +31,23 @@ protected:
 			initRhiResource();
 		}
 		QRhiResourceUpdateBatch* resourceUpdates = nullptr;
-		resourceUpdates = mRhi->nextResourceUpdateBatch();
+		if(sigSubmit.receive()){
+			resourceUpdates = mRhi->nextResourceUpdateBatch();
+			resourceUpdates->uploadStaticBuffer(mIndirectDrawBuffer.get(), 0, sizeof(mDispatchParam), &mDispatchParam);
+			currentCmdBuffer->resourceUpdate(resourceUpdates);
+			mRhi->finish();
+		}
 
-		resourceUpdates->updateDynamicBuffer(mIndirectDrawBuffer.get(), 0, sizeof(mDispatchParam), &mDispatchParam);
-
-		currentCmdBuffer->beginComputePass(resourceUpdates, QRhiCommandBuffer::ExternalContent);
+		currentCmdBuffer->beginComputePass(nullptr, QRhiCommandBuffer::ExternalContent);
 		currentCmdBuffer->setComputePipeline(mPipeline.get());
 		currentCmdBuffer->setShaderResources();
-
+		
 		QRhiVulkanCommandBufferNativeHandles* vkCmdBufferHandle = (QRhiVulkanCommandBufferNativeHandles*)currentCmdBuffer->nativeHandles();
 		QRhiVulkanNativeHandles* vkHandles = (QRhiVulkanNativeHandles*)mRhi->nativeHandles();
 		auto buffer = mIndirectDrawBuffer->nativeBuffer();
 		VkBuffer vkBuffer = *(VkBuffer*)buffer.objects[0];
 		QVulkanInstance* vkInstance = mRhi->getVkInstance();
 		vkInstance->deviceFunctions(vkHandles->dev)->vkCmdDispatchIndirect(vkCmdBufferHandle->commandBuffer, vkBuffer, 0);
-
 		currentCmdBuffer->endComputePass();
 		static QRhiBufferReadbackResult mCtxReader;
 		mCtxReader.completed = [this]() {
@@ -64,7 +66,7 @@ protected:
 		mStorageBuffer.reset(mRhi->newBuffer(QRhiBuffer::Static, QRhiBuffer::StorageBuffer, sizeof(float)));
 		mStorageBuffer->create();
 
-		mIndirectDrawBuffer.reset(mRhi->newVkBuffer(QRhiBuffer::Dynamic, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(mDispatchParam)));
+		mIndirectDrawBuffer.reset(mRhi->newVkBuffer(QRhiBuffer::Immutable, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, sizeof(mDispatchParam)));
 		mIndirectDrawBuffer->create();
 
 		mShaderBindings.reset(mRhi->newShaderResourceBindings());

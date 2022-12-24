@@ -7,12 +7,10 @@
 
 class IRenderer: public QObject {
 	Q_OBJECT
-		Q_PROPERTY(QCamera* Camera READ getCamera WRITE setCamera)
+	Q_PROPERTY(QCamera* Camera READ getCamera WRITE setCamera)
 public:
 	IRenderer(QSharedPointer<QRhiEx> inRhi,const QSize& inFrameSize);
-
-	void complie();
-	virtual void render() = 0;
+	void requestComplie();
 	virtual QRhiRenderTarget* renderTaget() = 0;
 	virtual QRhiRenderPassDescriptor* renderPassDescriptor() { return renderTaget()->renderPassDescriptor();}
 	virtual int sampleCount() = 0;
@@ -26,10 +24,14 @@ public:
 	IRenderPassBase* getRenderPassByName(const QString& inName);
 	QSharedPointer<QRhiEx> getRhi() { return mRhi; }
 protected:
+	void complie();
+	virtual void render();
+protected:
 	QSharedPointer<QRhiEx> mRhi;
 	QSharedPointer<QFrameGraph> mFrameGraph;
 	QCamera* mCamera;
 	QSize mFrameSize;
+	bool bRequestCompile = false;
 };
 
 #endif // IRenderer_h__

@@ -12,12 +12,12 @@ QString QSkeletalMeshRenderComponent::getStaticMeshPath() const {
 QSkeletalMeshRenderComponent* QSkeletalMeshRenderComponent::setupStaticMeshPath(QString inPath) {
 	mStaticMeshPath = inPath;
 	mSkeletalMesh = QSkeletalMesh::loadFromFile(inPath);
-	sigRecreateResource.request();
-	sigRecreatePipeline.request();
+	sigonRebuildResource.request();
+	sigonRebuildPipeline.request();
 	return this;
 }
 
-void QSkeletalMeshRenderComponent::recreateResource() {
+void QSkeletalMeshRenderComponent::onRebuildResource() {
 	if (mSkeletalMesh.isNull())
 		return;
 
@@ -89,18 +89,18 @@ void main(){
 	}
 }
 
-void QSkeletalMeshRenderComponent::recreatePipeline() {
+void QSkeletalMeshRenderComponent::onRebuildPipeline() {
 	for (auto pipeline : mPipelines) {
 		pipeline->create(this);
 	}
 }
 
-void QSkeletalMeshRenderComponent::uploadResource(QRhiResourceUpdateBatch* batch) {
+void QSkeletalMeshRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
 	batch->uploadStaticBuffer(mVertexBuffer.get(), mSkeletalMesh->mVertices.constData());
 	batch->uploadStaticBuffer(mIndexBuffer.get(), mSkeletalMesh->mIndices.constData());
 }
 
-void QSkeletalMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch* batch) {
+void QSkeletalMeshRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {
 	for (auto pipeline : mPipelines) {
 		QMatrix4x4 MVP = calculateMatrixMVP();
 		QMatrix4x4 M = calculateMatrixModel();
@@ -109,12 +109,12 @@ void QSkeletalMeshRenderComponent::updateResourcePrePass(QRhiResourceUpdateBatch
 		pipeline->getUniformBlock("Transform")->setParamValue("Bone", mSkeletalMesh->mCurrentPosesMatrix);
 		pipeline->update(batch);
 		if (pipeline->sigRebuild.receive()) {
-			sigRecreatePipeline.request();
+			sigonRebuildPipeline.request();
 		}
 	}
 }
 
-void QSkeletalMeshRenderComponent::renderInPass(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
+void QSkeletalMeshRenderComponent::onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
 	for (int i = 0; i < mPipelines.size(); i++) {
 		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
 		const QSkeletalMesh::SubMeshInfo& meshInfo = mSkeletalMesh->mSubmeshes[i];

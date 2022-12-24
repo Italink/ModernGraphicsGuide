@@ -16,6 +16,7 @@ public:
 protected:
 	void rebuildTopology();
 private:
+	QHash<IRenderPassBase*, QList<IRenderPassBase*>> mDependMap;
 	QHash<QString, IRenderPassBase*> mRenderPassMap;
 	QList<IRenderPassBase*> mRenderPassTopology;
 };
@@ -23,11 +24,10 @@ private:
 class QFrameGraphBuilder {
 public:
 	static QFrameGraphBuilder* begin();
-	QFrameGraphBuilder* node(const QString& inName, IRenderPassBase* inRenderPass);
+	QFrameGraphBuilder* addPass(const QString& inName, IRenderPassBase* inRenderPass);
 	QSharedPointer<QFrameGraph> end();
 private:
 	QFrameGraphBuilder();
-
 	QSharedPointer<QFrameGraph> mFrameGraph;
 	QString mCurrentNodeName;
 	QList<IRenderPassBase*> mRenderPassNodeList;

@@ -6,14 +6,24 @@ IRenderer::IRenderer(QSharedPointer<QRhiEx> inRhi, const QSize& inFrameSize)
 {
 }
 
+void IRenderer::requestComplie() {
+	bRequestCompile = true;
+}
+
 void IRenderer::complie() {
 	mFrameGraph->compile(this);
+}
+
+void IRenderer::render() {
+	if (bRequestCompile) {
+		complie();
+		bRequestCompile = false;
+	}
 }
 
 void IRenderer::setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph) {
 	mFrameGraph = inFrameGraph;
 }
-
 
 void IRenderer::resize(const QSize& size) {
 	mFrameSize = size;
