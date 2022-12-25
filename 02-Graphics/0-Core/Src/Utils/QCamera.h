@@ -31,7 +31,7 @@ public:
 
 	void setAspectRatio(float val);
 
-	QMatrix4x4 getMatrixVPWithCorr(QRhiEx* inRhi);
+	QMatrix4x4 getMatrixClipWithCorr(QRhiEx* inRhi);
 	QMatrix4x4 getMatrixClip();
 	QMatrix4x4 getMatrixView();
 	void setupWindow(QWindow* window);

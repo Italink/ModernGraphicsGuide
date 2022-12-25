@@ -10,7 +10,9 @@ class QWindowRenderer : public IRenderer {
 public:
 	friend class QRendererWidget;
 	QWindowRenderer(QRhiWindow* inWindow);
+	QWindow* getWindow() const;
 
+protected:
 	void render() override;
 	QRhiRenderTarget* renderTaget() override;
 	int sampleCount()override;

@@ -8,13 +8,16 @@
 class QParticlesRenderComponent :public ISceneRenderComponent {
 	Q_OBJECT
 		Q_PROPERTY(QColor4D Color READ getColor WRITE setupColor)
+		Q_PROPERTY(bool FacingCamera READ getFacingCamera WRITE setupFacingCamera)
 public:
 	QParticlesRenderComponent();
+	QParticlesRenderComponent* setupType(QParticleSystem::Type inType);
 	QParticlesRenderComponent* setupColor(QColor4D val);
-	QParticlesRenderComponent* setType(QParticleSystem::Type inType);
+	QParticlesRenderComponent* setupFacingCamera(bool val);
 
 	QParticleSystem::Type getType();
 	QColor4D getColor() const;
+	bool getFacingCamera() const;
 protected:
 	void onRebuildResource() override;
 	void onRebuildPipeline() override;
@@ -38,11 +41,11 @@ protected:
 		quint32 firstInstance = 0;
 	};
 	struct UniformBlock {
-		QGenericMatrix<4, 4, float> MVP;
-		QGenericMatrix<4, 4, float> M;
-		QVector4D color;
-	};
-	QColor4D mColor = QColor4D(0.1f, 0.5f, 0.9f, 1.0f);
+		QGenericMatrix<4, 4, float> MV;
+		QGenericMatrix<4, 4, float> P;
+		QColor4D Color;
+	}mUniform;
+	bool bFacingCamera = true;
 };
 
 #endif // QParticlesRenderComponent_h__

@@ -57,8 +57,8 @@ void QCamera::setAspectRatio(float val)
 	calculateClipMatrix();
 }
 
-QMatrix4x4 QCamera::getMatrixVPWithCorr(QRhiEx* inRhi) {
-	return inRhi->clipSpaceCorrMatrix() * getMatrixClip() * mViewMatrix;
+QMatrix4x4 QCamera::getMatrixClipWithCorr(QRhiEx* inRhi) {
+	return inRhi->clipSpaceCorrMatrix() * getMatrixClip();
 }
 
 QMatrix4x4 QCamera::getMatrixClip()

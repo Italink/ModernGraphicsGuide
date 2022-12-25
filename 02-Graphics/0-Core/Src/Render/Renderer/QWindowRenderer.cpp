@@ -8,6 +8,10 @@ QWindowRenderer::QWindowRenderer(QRhiWindow* inWindow)
 	setParent(mWindow);
 }
 
+QWindow* QWindowRenderer::getWindow() const {
+	return mWindow;
+}
+
 void QWindowRenderer::render()
 {
 	IRenderer::render();

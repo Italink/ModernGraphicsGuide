@@ -87,7 +87,6 @@ void QStaticMeshRenderComponent::onRebuildPipeline() {
 void QStaticMeshRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
 	batch->uploadStaticBuffer(mVertexBuffer.get(), mStaticMesh->mVertices.constData());
 	batch->uploadStaticBuffer(mIndexBuffer.get(), mStaticMesh->mIndices.constData());
-	
 }
 
 void QStaticMeshRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {

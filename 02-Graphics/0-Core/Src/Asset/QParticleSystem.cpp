@@ -57,7 +57,7 @@ QGPUParticleSystem::QGPUParticleSystem()
 		Particle.life = 0.0f;
 		Particle.scaling = vec3(rand(0.45,0.001,1));
 		Particle.position = vec3(rand(0.121,-10,10),rand(0.415,-10,10),rand(0.456,-10,10));
-		Particle.velocity = vec3(0.000,0,rand(0.1451,0.0001,0.1));
+		Particle.velocity = vec3(0.0,0,rand(0.1451,0.0001,0.1));
 	})");
 
 	setUpdateShaderCode(R"(#version 450

@@ -2,7 +2,15 @@
 #include "Render/IRenderPass.h"
 
 QMatrix4x4 ISceneRenderComponent::calculateMatrixMVP() {
-	return sceneRenderPass()->getRenderer()->getCamera()->getMatrixVPWithCorr(mRhi.get()) * calculateMatrixModel();
+	return  getMatrixClipWithCorr() * getMatrixView () * calculateMatrixModel();
+}
+
+QMatrix4x4 ISceneRenderComponent::getMatrixView() {
+	return sceneRenderPass()->getRenderer()->getCamera()->getMatrixView();
+}
+
+QMatrix4x4 ISceneRenderComponent::getMatrixClipWithCorr() {
+	return sceneRenderPass()->getRenderer()->getCamera()->getMatrixClipWithCorr(mRhi.get());
 }
 
 QMatrix4x4 ISceneRenderComponent::calculateMatrixModel() {

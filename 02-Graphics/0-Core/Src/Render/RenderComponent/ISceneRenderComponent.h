@@ -8,6 +8,8 @@ class ISceneRenderComponent: public IRenderComponent {
 	Q_OBJECT
 protected:
 	QMatrix4x4 calculateMatrixMVP();
+	QMatrix4x4 getMatrixView();
+	QMatrix4x4 getMatrixClipWithCorr();
 	QMatrix4x4 calculateMatrixModel();
 protected:
 	Q_PROPERTY_VAR(QVector3D, Position);
