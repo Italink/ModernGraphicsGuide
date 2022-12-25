@@ -115,7 +115,7 @@ void QRhiWindow::exposeEvent(QExposeEvent*)
 			mRunning = true;
 			initializeInternal();
 		}
-		mHasSwapChain = mSwapChain->createOrResize();
+		resizeInternal();
 		mNotExposed = false;
 	}
 	const QSize surfaceSize = mHasSwapChain ? mSwapChain->surfacePixelSize() : QSize();

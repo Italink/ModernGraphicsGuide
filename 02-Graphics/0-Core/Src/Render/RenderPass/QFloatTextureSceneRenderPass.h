@@ -17,11 +17,10 @@ public:
 	};
 protected:
 	int getSampleCount() override;
-	int getRenderTargetCount() override;
 	QRhiRenderPassDescriptor* getRenderPassDescriptor() override;
 	QRhiRenderTarget* getRenderTarget() override;
+	void resizeAndLink(const QSize& size, const TextureLinker& linker) override;
 	void compile() override;
-	void resize(const QSize& size) override;
 protected:
 	RTResource mRT;
 };

@@ -4,10 +4,6 @@ int QFloatTextureSceneRenderPass::getSampleCount() {
 	return 1;
 }
 
-int QFloatTextureSceneRenderPass::getRenderTargetCount() {
-	return 1;
-}
-
 QRhiRenderPassDescriptor* QFloatTextureSceneRenderPass::getRenderPassDescriptor() {
 	return mRT.renderPassDesc.get();
 }
@@ -16,11 +12,7 @@ QRhiRenderTarget* QFloatTextureSceneRenderPass::getRenderTarget() {
 	return mRT.renderTarget.get();
 }
 
-void QFloatTextureSceneRenderPass::compile() {
-	registerOutputTexture(0, "BaseColor",mRT.atBaseColor.get());
-}
-
-void QFloatTextureSceneRenderPass::resize(const QSize& size) {
+void QFloatTextureSceneRenderPass::resizeAndLink(const QSize& size, const TextureLinker& linker) {
 	QVector<QRhiColorAttachment> mColorAttachmentList;
 	mRT.atBaseColor.reset(mRhi->newTexture(QRhiTexture::RGBA32F, size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
 	mRT.atBaseColor->create();
@@ -35,4 +27,9 @@ void QFloatTextureSceneRenderPass::resize(const QSize& size) {
 	mRT.renderPassDesc.reset(mRT.renderTarget->newCompatibleRenderPassDescriptor());
 	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
 	mRT.renderTarget->create();
+
+	linker.setOutputTexture(0, "BaseColor", mRT.atBaseColor.get());
+}
+
+void QFloatTextureSceneRenderPass::compile() {
 }

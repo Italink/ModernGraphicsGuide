@@ -5,7 +5,8 @@ void QFrameGraph::compile(IRenderer* renderer) {
 	rebuildTopology();
 	for (auto& renderPass : mRenderPassTopology) {
 		renderPass->setRenderer(renderer);
-		renderPass->resize(renderer->renderTaget()->pixelSize());
+		TextureLinker linker(renderPass);
+		renderPass->resizeAndLink(renderer->renderTaget()->pixelSize(), linker);
 		renderPass->compile();
 	}
 }
@@ -16,17 +17,20 @@ void QFrameGraph::render(QRhiCommandBuffer* cmdBuffer) {
 	}
 }
 
-void QFrameGraph::resize(const QSize& size)
-{
+void QFrameGraph::resize(const QSize& size){
 	for (auto& renderPass : mRenderPassTopology) {
-		renderPass->resize(size);
+		renderPass->cleanupInputLinkerCache();
+	}
+	for (auto& renderPass : mRenderPassTopology) {
+		TextureLinker linker(renderPass);
+		renderPass->resizeAndLink(size, linker);
 	}
 }
 
 void QFrameGraph::rebuildTopology() {
 	mDependMap.clear();
 	for (auto& renderPass : mRenderPassMap) {
-		for (auto name : renderPass->getInputRenderPassNames()) {
+		for (auto name : renderPass->getDependentRenderPassNames()) {
 			mDependMap[renderPass] << mRenderPassMap.value(name);
 		}
 	}

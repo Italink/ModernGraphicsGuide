@@ -7,14 +7,14 @@
 
 class QSkeletalMeshRenderComponent :public ISceneRenderComponent {
 	Q_OBJECT
-		Q_PROPERTY(QString StaticMeshPath READ getStaticMeshPath WRITE setupStaticMeshPath)
+		Q_PROPERTY(QString SkeletalMeshPath READ getSkeletalMeshPath WRITE setupSkeletalMeshPath)
 		Q_META_BEGIN(QSkeletalMeshRenderComponent)
-		Q_META_P_STRING_AS_FILE_PATH(StaticMeshPath)
+		Q_META_P_STRING_AS_FILE_PATH(SkeletalMeshPath)
 		Q_META_END()
 public:
-	QSkeletalMeshRenderComponent(const QString& inStaticMeshPath = QString());
-	QString getStaticMeshPath() const;
-	QSkeletalMeshRenderComponent* setupStaticMeshPath(QString inPath);
+	QSkeletalMeshRenderComponent(const QString& inSkeletalMeshPath = QString());
+	QString getSkeletalMeshPath() const;
+	QSkeletalMeshRenderComponent* setupSkeletalMeshPath(QString inPath);
 protected:
 	void onRebuildResource() override;
 	void onRebuildPipeline() override;
@@ -23,7 +23,7 @@ protected:
 	void onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) override;
 	bool isVaild() override;
 protected:
-	QString mStaticMeshPath;
+	QString mSkeletalMeshPath;
 
 	QSharedPointer<QSkeletalMesh> mSkeletalMesh;
 

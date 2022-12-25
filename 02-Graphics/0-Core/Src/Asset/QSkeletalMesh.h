@@ -7,6 +7,7 @@
 #include "QMap"
 #include "QMatrix4x4"
 #include "AssetUtils.h"
+#include "Utils/MathUtils.h"
 #include "QVariantAnimation"
 
 struct QSkeleton {
@@ -22,7 +23,7 @@ struct QSkeleton {
 	};
 	QSharedPointer<MeshNode> mMeshRoot;
 	QHash<QString, QSharedPointer<BoneNode>> mBoneMap;
-	QVector<AssetUtils::Mat4> mBoneOffsetMatrix;
+	QVector<MathUtils::Mat4> mBoneOffsetMatrix;
 };
 
 struct QSkeletalAnimation {
@@ -71,7 +72,7 @@ public:
 	QVector<SubMeshInfo> mSubmeshes;
 	QSharedPointer<QVariantAnimation> mAnimPlayer;
 	QSharedPointer<QSkeleton> mSkeleton;
-	QVector<AssetUtils::Mat4> mCurrentPosesMatrix;
+	QVector<MathUtils::Mat4> mCurrentPosesMatrix;
 	QVector<QSharedPointer<QSkeletalAnimation>> mAnimations;
 };
 

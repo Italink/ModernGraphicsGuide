@@ -1,23 +1,7 @@
-#include "QSkeletalMeshRenderComponent.h"
-#include "Render/IRenderPass.h"
+#include "QDebugSkeletalMeshRenderComponent.h"
+#include "Render/RenderPass/QDebugSceneRenderPass.h"
 
-QSkeletalMeshRenderComponent::QSkeletalMeshRenderComponent(const QString& inSkeletalMeshPath) {
-	setupSkeletalMeshPath(inSkeletalMeshPath);
-}
-
-QString QSkeletalMeshRenderComponent::getSkeletalMeshPath() const {
-	return mSkeletalMeshPath;
-}
-
-QSkeletalMeshRenderComponent* QSkeletalMeshRenderComponent::setupSkeletalMeshPath(QString inPath) {
-	mSkeletalMeshPath = inPath;
-	mSkeletalMesh = QSkeletalMesh::loadFromFile(inPath);
-	sigonRebuildResource.request();
-	sigonRebuildPipeline.request();
-	return this;
-}
-
-void QSkeletalMeshRenderComponent::onRebuildResource() {
+void QDebugSkeletalMeshRenderComponent::onRebuildResource() {
 	if (mSkeletalMesh.isNull())
 		return;
 
@@ -40,7 +24,7 @@ void QSkeletalMeshRenderComponent::onRebuildResource() {
 		pipeline->addUniformBlock(QRhiShaderStage::Vertex, mUniformBlock);
 		pipeline->setInputBindings({
 			QRhiVertexInputBindingEx(mVertexBuffer.get(),sizeof(QSkeletalMesh::Vertex))
-		});
+			});
 		pipeline->setInputAttribute({
 			QRhiVertexInputAttributeEx("inPosition"	,0, 0, QRhiVertexInputAttribute::Float3, offsetof(QSkeletalMesh::Vertex,position)),
 			QRhiVertexInputAttributeEx("inNormal"	,0, 1, QRhiVertexInputAttribute::Float3, offsetof(QSkeletalMesh::Vertex,normal)),
@@ -67,66 +51,23 @@ void main(){
 	gl_Position = Transform.MVP * pos;
 }
 )");
-		if (mesh.materialInfo.contains("Diffuse")) {
+
+		QDebugSceneRenderPass* debugPass = qobject_cast<QDebugSceneRenderPass*>(sceneRenderPass());
+		bool bHasDiffuse = mesh.materialInfo.contains("Diffuse");
+		if (bHasDiffuse) {
 			pipeline->addTexture(QRhiShaderStage::Fragment, "Diffuse", mesh.materialInfo["Diffuse"]);
-			pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
+		}
+		pipeline->setShaderMainCode(QRhiShaderStage::Fragment, QString(R"(
 		layout(location = 0) in vec2 vUV;
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
 		void main(){
-			BaseColor = texture(Diffuse,vUV);
-		})");
-		}
-		else {
-			pipeline->setShaderMainCode(QRhiShaderStage::Fragment, R"(
-		layout(location = 0) in vec2 vUV;
-		layout(location = 1) in vec3 vWorldPosition;
-		layout(location = 2) in mat3 vTangentBasis;
-		void main(){
-			BaseColor = vec4(vTangentBasis[2],1);
-		})");
-		}
+			BaseColor = %1;
+			DebugID = %2;
+		})").arg(bHasDiffuse ? "texture(Diffuse,vUV)" : "vec4(vTangentBasis[2],1)")
+			.arg(debugPass->getIDText(this))
+			.toLocal8Bit()
+		);
 	}
 }
 
-void QSkeletalMeshRenderComponent::onRebuildPipeline() {
-	for (auto pipeline : mPipelines) {
-		pipeline->create(this);
-	}
-}
-
-void QSkeletalMeshRenderComponent::onUpload(QRhiResourceUpdateBatch* batch) {
-	batch->uploadStaticBuffer(mVertexBuffer.get(), mSkeletalMesh->mVertices.constData());
-	batch->uploadStaticBuffer(mIndexBuffer.get(), mSkeletalMesh->mIndices.constData());
-}
-
-void QSkeletalMeshRenderComponent::onUpdate(QRhiResourceUpdateBatch* batch) {
-	for (auto pipeline : mPipelines) {
-		QMatrix4x4 MVP = calculateMatrixMVP();
-		QMatrix4x4 M = calculateMatrixModel();
-		pipeline->getUniformBlock("Transform")->setParamValue("MVP", MVP.toGenericMatrix<4,4>());
-		pipeline->getUniformBlock("Transform")->setParamValue("M", M.toGenericMatrix<4, 4>());
-		pipeline->getUniformBlock("Transform")->setParamValue("Bone", mSkeletalMesh->mCurrentPosesMatrix);
-		pipeline->update(batch);
-		if (pipeline->sigRebuild.receive()) {
-			sigonRebuildPipeline.request();
-		}
-	}
-}
-
-void QSkeletalMeshRenderComponent::onRender(QRhiCommandBuffer* cmdBuffer, const QRhiViewport& viewport) {
-	for (int i = 0; i < mPipelines.size(); i++) {
-		QRhiGraphicsPipelineBuilder* pipeline = mPipelines[i];
-		const QSkeletalMesh::SubMeshInfo& meshInfo = mSkeletalMesh->mSubmeshes[i];
-		cmdBuffer->setGraphicsPipeline(pipeline->getGraphicsPipeline());
-		cmdBuffer->setViewport(viewport);
-		cmdBuffer->setShaderResources();
-		const QRhiCommandBuffer::VertexInput vertexBindings(mVertexBuffer.get(), meshInfo.verticesOffset * sizeof(QSkeletalMesh::Vertex));
-		cmdBuffer->setVertexInput(0, 1, &vertexBindings, mIndexBuffer.get(), meshInfo.indicesOffset * sizeof(QSkeletalMesh::Index), QRhiCommandBuffer::IndexUInt32);
-		cmdBuffer->drawIndexed(meshInfo.indicesRange);
-	}
-}
-
-bool QSkeletalMeshRenderComponent::isVaild() {
-	return !mSkeletalMesh.isNull();
-}

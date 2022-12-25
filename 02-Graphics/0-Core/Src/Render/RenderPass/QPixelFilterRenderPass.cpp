@@ -15,8 +15,15 @@ int QPixelFilterRenderPass::getDownSamplerCount() const {
 	return mDownSamplerCount;
 }
 
-void QPixelFilterRenderPass::compile() {
-	registerOutputTexture(OutSlot::FilterResult, "FilterResult", mRT.colorAttachment.get());
+void QPixelFilterRenderPass::resizeAndLink(const QSize& size, const TextureLinker& linker) {
+	mRT.colorAttachment.reset(mRhi->newTexture(QRhiTexture::RGBA32F, linker.getInputTexture(InSlot::Src)->pixelSize() / mDownSamplerCount, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
+	mRT.colorAttachment->create();
+	mRT.renderTarget.reset(mRhi->newTextureRenderTarget({ mRT.colorAttachment.get() }));
+	mRT.renderPassDesc.reset(mRT.renderTarget->newCompatibleRenderPassDescriptor());
+	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
+	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
+	mRT.renderTarget->create();
+
 	mSampler.reset(mRhi->newSampler(QRhiSampler::Linear,
 		QRhiSampler::Linear,
 		QRhiSampler::None,
@@ -24,6 +31,19 @@ void QPixelFilterRenderPass::compile() {
 		QRhiSampler::ClampToEdge));
 
 	mSampler->create();
+
+	mBindings.reset(mRhi->newShaderResourceBindings());
+	mBindings->setBindings({
+		QRhiShaderResourceBinding::sampledTexture(0,QRhiShaderResourceBinding::FragmentStage, linker.getInputTexture(InSlot::Src), mSampler.get())
+		});
+	mBindings->create();
+
+	linker.setOutputTexture(OutSlot::FilterResult, "FilterResult", mRT.colorAttachment.get());
+
+	sigRebuild.receive();
+}
+
+void QPixelFilterRenderPass::compile() {
 	mPipeline.reset(mRhi->newGraphicsPipeline());
 	QRhiGraphicsPipeline::TargetBlend blendState;
 	blendState.enable = true;
@@ -54,26 +74,11 @@ layout (location = 0) out vec4 outFragColor;
 		});
 	QRhiVertexInputLayout inputLayout;
 
-	mBindings.reset(mRhi->newShaderResourceBindings());
-	mBindings->setBindings({
-		QRhiShaderResourceBinding::sampledTexture(0,QRhiShaderResourceBinding::FragmentStage, getInputTexture(InSlot::Src), mSampler.get())
-		});
-	mBindings->create();
+
 	mPipeline->setVertexInputLayout(inputLayout);
 	mPipeline->setShaderResourceBindings(mBindings.get());
 	mPipeline->setRenderPassDescriptor(mRT.renderTarget->renderPassDescriptor());
 	mPipeline->create();
-}
-
-void QPixelFilterRenderPass::resize(const QSize& size) {
-	mRT.colorAttachment.reset(mRhi->newTexture(QRhiTexture::RGBA32F, getInputTexture(InSlot::Src)->pixelSize() / mDownSamplerCount, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
-	mRT.colorAttachment->create();
-	mRT.renderTarget.reset(mRhi->newTextureRenderTarget({ mRT.colorAttachment.get() }));
-	mRT.renderPassDesc.reset(mRT.renderTarget->newCompatibleRenderPassDescriptor());
-	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
-	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
-	mRT.renderTarget->create();
-	sigRebuild.receive();
 }
 
 void QPixelFilterRenderPass::render(QRhiCommandBuffer* cmdBuffer) {

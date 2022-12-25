@@ -4,20 +4,28 @@
 #include "Render/Renderer/QWindowRenderer.h"
 #include "QSplitter"
 #include "Core/QDetailWidgetStyleManager.h"
+#include "Customization/Instance/QInstanceDetail_QObject.h"
 
 class QInnerRhiWindow : public QRhiWindow {
 public:
 	QInnerRhiWindow(QRhiWindow::InitParams inInitParams) 
 		:QRhiWindow(inInitParams) {
 	}
-	void setTickFunctor(std::function<void()> inTickFunctor) {
-		mTickFunctor = inTickFunctor;
+	void setTickFunctor(std::function<void()> inFunctor) {
+		mTickFunctor = inFunctor;
 	}
-	virtual void onRenderTick() override {
+	void setResizeFunctor(std::function<void(const QSize&)> inFunctor) {
+		mResizeFunctor = inFunctor;
+	}
+	void onRenderTick() override {
 		mTickFunctor();
+	}
+	void onResizeEvent(const QSize& inSize) {
+		mResizeFunctor(inSize);
 	}
 private:
 	std::function<void()> mTickFunctor = []() {};
+	std::function<void(const QSize&)> mResizeFunctor = [](const QSize&) {};
 };
 
 QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
@@ -30,12 +38,25 @@ QRendererWidget::QRendererWidget(QRhiWindow::InitParams inInitParams)
 			if (mRenderer == nullptr) {
 				mRenderer = new QWindowRenderer(mRhiWindow);
 				mRenderer->setCamera(mCamera);
+				connect(mRenderer, &IRenderer::asCurrentObjectChanged, this, [this](QObject* object) {
+					mDetailWidget->SetSelectedInstance(QInstance::CreateObjcet(object));
+				});
+				connect(mDetailWidget, &QDetailWidget::AsSelectedInstanceChanged, this, [this](QSharedPointer<QInstance> instance) {
+					if (mRenderer->getCurrentObject() != instance->GetOuterObject()) {
+						mRenderer->setCurrentObject(instance->GetOuterObject());
+					}
+				});
 			}
 			mRenderer->setFrameGraph(mFrameGraph);
 			mRenderer->complie();
 			mDetailWidget->SetInstances(mRenderer);
 		}
 		mRenderer->render();
+	});
+	mRhiWindow->setResizeFunctor([this](const QSize& inSize) {
+		if (mRenderer) {
+			mRenderer->resize(inSize);
+		}
 	});
 
 	QSplitter* splitter = new QSplitter;

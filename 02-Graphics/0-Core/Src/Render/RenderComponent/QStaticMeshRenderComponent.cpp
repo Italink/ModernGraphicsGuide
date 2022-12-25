@@ -63,7 +63,7 @@ void main(){
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
 		void main(){
-			FragColor = texture(Diffuse,vUV);
+			BaseColor = texture(Diffuse,vUV);
 		})");
 	}
 	else {
@@ -72,7 +72,7 @@ void main(){
 		layout(location = 1) in vec3 vWorldPosition;
 		layout(location = 2) in mat3 vTangentBasis;
 		void main(){
-			FragColor = vec4(vTangentBasis[2],1);
+			BaseColor = vec4(vTangentBasis[2],1);
 		})");
 	}
 	}

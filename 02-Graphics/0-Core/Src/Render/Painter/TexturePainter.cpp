@@ -20,18 +20,16 @@ void TexturePainter::setupSampler(QRhiSampler::Filter magFilter /*= QRhiSampler:
 
 void TexturePainter::compile()
 {
-	mSampler.reset(mRhi->newSampler(QRhiSampler::Nearest,
-				   QRhiSampler::Nearest,
-				   QRhiSampler::None,
-				   QRhiSampler::ClampToEdge,
-				   QRhiSampler::ClampToEdge));
-	mSampler->create();
 	mPipeline.reset(mRhi->newGraphicsPipeline());
 	QRhiGraphicsPipeline::TargetBlend blendState;
+	blendState.dstColor = QRhiGraphicsPipeline::One;
+	blendState.srcColor = QRhiGraphicsPipeline::One;
+	blendState.dstAlpha = QRhiGraphicsPipeline::One;
+	blendState.srcAlpha = QRhiGraphicsPipeline::One;
 	blendState.enable = true;
 	mPipeline->setTargetBlends({ blendState });
 	mPipeline->setSampleCount(mSampleCount);
-
+	mPipeline->setDepthTest(false);
 	QShader vs = mRhi->newShaderFromCode(QShader::VertexStage, R"(#version 450
 layout (location = 0) out vec2 vUV;
 out gl_PerVertex{
@@ -56,6 +54,13 @@ void main() {
 		{ QRhiShaderStage::Fragment, fs }
 	});
 	QRhiVertexInputLayout inputLayout;
+
+	mSampler.reset(mRhi->newSampler(QRhiSampler::Nearest,
+		QRhiSampler::Nearest,
+		QRhiSampler::None,
+		QRhiSampler::ClampToEdge,
+		QRhiSampler::ClampToEdge));
+	mSampler->create();
 
 	mBindings.reset(mRhi->newShaderResourceBindings());
 	mBindings->setBindings({

@@ -8,7 +8,7 @@ class QBloomMerageRenderPass :public IRenderPassBase {
 public:
 	QBloomMerageRenderPass();
 
-	void resize(const QSize& size) override;
+	void resizeAndLink(const QSize& size, const TextureLinker& linker) override;
 	void compile() override;
 	void render(QRhiCommandBuffer* cmdBuffer) override;
 

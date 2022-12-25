@@ -18,7 +18,7 @@ public:
 	QBlurRenderPass* setupBlurSize(int size);
 	QBlurRenderPass* setupBlurIter(int val);
 
-	void resize(const QSize& size) override;
+	void resizeAndLink(const QSize& size, const TextureLinker& linker) override;
 	void compile() override;
 	void render(QRhiCommandBuffer* cmdBuffer) override;
 
@@ -34,6 +34,7 @@ public:
 		BlurResult = 0,
 	};
 private:
+	QRhiTexture* mSrcTexture = nullptr;
 	QScopedPointer<QRhiSampler> mSampler;
 	QScopedPointer<QRhiBuffer> mUniformBuffer;
 	struct BlurRT {

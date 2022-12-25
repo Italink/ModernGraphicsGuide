@@ -2,23 +2,31 @@
 
 QBloomMerageRenderPass::QBloomMerageRenderPass(){}
 
-void QBloomMerageRenderPass::resize(const QSize& size) {
-	mRT.colorAttachment.reset(mRhi->newTexture(QRhiTexture::RGBA32F, getInputTexture(InSlot::Raw)->pixelSize(), 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
+void QBloomMerageRenderPass::resizeAndLink(const QSize& size, const TextureLinker& linker) {
+	mRT.colorAttachment.reset(mRhi->newTexture(QRhiTexture::RGBA32F, linker.getInputTexture(InSlot::Raw)->pixelSize(), 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
 	mRT.colorAttachment->create();
 	mRT.renderTarget.reset(mRhi->newTextureRenderTarget({ mRT.colorAttachment.get() }));
 	mRT.renderPassDesc.reset(mRT.renderTarget->newCompatibleRenderPassDescriptor());
 	mRT.renderTarget->setRenderPassDescriptor(mRT.renderPassDesc.get());
 	mRT.renderTarget->create();
+
+	mSampler.reset(mRhi->newSampler(QRhiSampler::Linear,
+		QRhiSampler::Linear,
+		QRhiSampler::None,
+		QRhiSampler::ClampToEdge,
+		QRhiSampler::ClampToEdge));
+	mSampler->create();
+	mBindings.reset(mRhi->newShaderResourceBindings());
+	mBindings->setBindings({
+		QRhiShaderResourceBinding::sampledTexture(0,QRhiShaderResourceBinding::FragmentStage,linker.getInputTexture(InSlot::Raw), mSampler.get()),
+		QRhiShaderResourceBinding::sampledTexture(1,QRhiShaderResourceBinding::FragmentStage,linker.getInputTexture(InSlot::Blur),mSampler.get())
+	});
+	mBindings->create();
+
+	linker.setOutputTexture(OutSlot::BloomMerageResult, "BloomMerageResult", mRT.colorAttachment.get());
 }
 
 void QBloomMerageRenderPass::compile() {
-	registerOutputTexture(OutSlot::BloomMerageResult, "BloomMerageResult", mRT.colorAttachment.get());
-	mSampler.reset(mRhi->newSampler(QRhiSampler::Linear,
-				   QRhiSampler::Linear,
-				   QRhiSampler::None,
-				   QRhiSampler::ClampToEdge,
-				   QRhiSampler::ClampToEdge));
-	mSampler->create();
 	mPipeline.reset(mRhi->newGraphicsPipeline());
 	QRhiGraphicsPipeline::TargetBlend blendState;
 	blendState.enable = true;
@@ -61,13 +69,6 @@ void main() {
 
 	QRhiVertexInputLayout inputLayout;
 
-	mBindings.reset(mRhi->newShaderResourceBindings());
-	mBindings->setBindings({
-		QRhiShaderResourceBinding::sampledTexture(0,QRhiShaderResourceBinding::FragmentStage,getInputTexture(InSlot::Raw), mSampler.get()),
-		QRhiShaderResourceBinding::sampledTexture(1,QRhiShaderResourceBinding::FragmentStage,getInputTexture(InSlot::Blur),mSampler.get())
-						   });
-
-	mBindings->create();
 	mPipeline->setVertexInputLayout(inputLayout);
 	mPipeline->setShaderResourceBindings(mBindings.get());
 	mPipeline->setRenderPassDescriptor(mRT.renderTarget->renderPassDescriptor());

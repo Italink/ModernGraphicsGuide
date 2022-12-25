@@ -239,6 +239,8 @@ void ImGuiPainter::resourceUpdate(QRhiResourceUpdateBatch* batch) {
 
 void ImGuiPainter::paint(QRhiCommandBuffer* cmdBuffer, QRhiRenderTarget* renderTarget) {
 	ImDrawData* draw_data = ImGui::GetDrawData();
+	if (!draw_data)
+		return;
 	int64_t vertexBufferOffset = 0;
 	int64_t indexBufferOffset = 0;
 	for (int i = 0; i < draw_data->CmdListsCount; i++) {

@@ -14,35 +14,22 @@ const QHash<int, QRhiTexture*>& IRenderPassBase::getOutputTextures() {
 	return mOutputTextures;
 }
 
-void IRenderPassBase::registerOutputTexture(int slot, const QByteArray& name, QRhiTexture* texture) {
-	if (texture)
-		texture->setName(name);
-	mOutputTextures[slot] = texture;
-}
-
 IRenderPassBase* IRenderPassBase::setupInputTexture(int inInputSlot, const QString& inPassName, int inPassSlot) {
-	mInputTextures[inInputSlot] = { inPassName ,inPassSlot,nullptr };
+	mInputTextureLinks[inInputSlot] = { inPassName ,inPassSlot,nullptr };
 	return this;
 }
 
-QRhiTexture* IRenderPassBase::getInputTexture(int slot /*= 0*/) {
-	InputTextureLinker& linker = mInputTextures[slot];
-	if (linker.result)
-		return linker.result;
-	return linker.result = mRenderer->getRenderPassByName(linker.passName)->getOutputTexture(linker.passSlot);
-}
-
-QStringList IRenderPassBase::getInputRenderPassNames() {
+QStringList IRenderPassBase::getDependentRenderPassNames() {
 	QStringList inputRenderPassNames;
-	for (auto& inputLinker : mInputTextures) {
-		inputRenderPassNames << inputLinker.passName;
+	for (auto& inputLink : mInputTextureLinks) {
+		inputRenderPassNames << inputLink.passName;
 	}
 	return inputRenderPassNames;
 }
 
 void IRenderPassBase::cleanupInputLinkerCache() {
-	for (auto& inputLinker : mInputTextures) {
-		inputLinker.result = nullptr;
+	for (auto& inputLinker : mInputTextureLinks) {
+		inputLinker.cache = nullptr;
 	}
 }
 
@@ -92,4 +79,17 @@ ISceneRenderPass* ISceneRenderPass::addRenderComponent(IRenderComponent* inRende
 	inRenderComponent->sigonRebuildPipeline.request();
 	mRenderComponents.push_back(inRenderComponent);
 	return this;
+}
+
+QRhiTexture* TextureLinker::getInputTexture(int slot) const{
+	InputTextureLinkInfo& linker = mRenderPass->mInputTextureLinks[slot];
+	if (linker.cache)
+		return linker.cache;
+	return linker.cache = mRenderPass->mRenderer->getRenderPassByName(linker.passName)->getOutputTexture(linker.passSlot);
+}
+
+void TextureLinker::setOutputTexture(int slot, const QByteArray& name, QRhiTexture* texture) const {
+	if (texture)
+		texture->setName(name);
+	mRenderPass->mOutputTextures[slot] = texture;
 }

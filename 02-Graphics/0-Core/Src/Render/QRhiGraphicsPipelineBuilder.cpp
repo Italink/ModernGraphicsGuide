@@ -117,6 +117,7 @@ QRhiShaderResourceBindings* QRhiGraphicsPipelineBuilder::getShaderResourceBindin
 }
 
 void QRhiGraphicsPipelineBuilder::create(IRenderComponent* inRenderComponent) {
+	mBlendStates.resize(inRenderComponent->sceneRenderPass()->getRenderTargetSlots().size());
 	QRhiEx* rhi = inRenderComponent->sceneRenderPass()->getRenderer()->getRhi().get();
 	mPipeline.reset(rhi->newGraphicsPipeline());
 	mPipeline->setTopology(mTopology);
@@ -178,7 +179,6 @@ void QRhiGraphicsPipelineBuilder::recreateShaderBindings(IRenderComponent* inRen
 	for (auto& stage : mStageInfos) {
 		stage.DefineCode = QByteArray();
 	}
-
 	QString vertexInputCode;
 	for (auto& input : mInputAttributes) {
 		vertexInputCode += QString::asprintf("layout(location = %d) in %s %s;\n", input.location(), getInputFormatTypeName(input.format()).data(), input.mName.toLocal8Bit().data());
@@ -231,18 +231,12 @@ void QRhiGraphicsPipelineBuilder::recreateShaderBindings(IRenderComponent* inRen
 		stage.second.DefineCode += uniformDefineCode.toLocal8Bit();
 	}
 	QString fragOutputCode;
-	auto outputTextures = inRenderComponent->sceneRenderPass()->getOutputTextures();
-	for (int i = 0; i < outputTextures.size(); i++) {
-		QRhiTexture* texture = outputTextures[i];
-		QByteArray textureType = "vec4";
-		QByteArray textureName = "FragColor";
-		if (texture) {
-			textureType = getOutputFormatTypeName(texture->format());
-			textureName = texture->name();
-		}
-		fragOutputCode += QString::asprintf("layout(location = %d) out %s %s;\n", i, textureType.data(), textureName.data());
+	auto targetSlots = inRenderComponent->sceneRenderPass()->getRenderTargetSlots();
+	for (int i = 0; i < targetSlots.size(); i++) {
+		QByteArray slotType = getOutputFormatTypeName(targetSlots[i].first);
+		QByteArray slotName = targetSlots[i].second.toLocal8Bit();
+		fragOutputCode += QString::asprintf("layout(location = %d) out %s %s;\n", i, slotType.data(), slotName.data());
 	}
-
 	mStageInfos[QRhiShaderStage::Fragment].DefineCode += fragOutputCode.toLocal8Bit();
 	mShaderBindings.reset(inRhi->newShaderResourceBindings());
 	mShaderBindings->setBindings(bindings.begin(), bindings.end());

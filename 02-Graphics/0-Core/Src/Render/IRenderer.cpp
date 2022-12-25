@@ -25,6 +25,13 @@ void IRenderer::setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph) {
 	mFrameGraph = inFrameGraph;
 }
 
+void IRenderer::setCurrentObject(QObject* val) {
+	if (mCurrentObject != val) {
+		mCurrentObject = val;
+		Q_EMIT asCurrentObjectChanged(mCurrentObject);
+	}
+}
+
 void IRenderer::resize(const QSize& size) {
 	mFrameSize = size;
 	if (mFrameGraph)

@@ -21,8 +21,8 @@ public:
 	QPixelFilterRenderPass* setupDownSamplerCount(int count);
 	int getDownSamplerCount() const;
 protected:
+	void resizeAndLink(const QSize& size, const TextureLinker& linker) override;
 	void compile() override;
-	void resize(const QSize& size) override;
 	void render(QRhiCommandBuffer* cmdBuffer) override;
 
 	struct RTResource {

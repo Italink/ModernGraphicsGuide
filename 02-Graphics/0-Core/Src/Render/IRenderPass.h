@@ -5,13 +5,23 @@
 #include "IRenderer.h"
 #include "IRenderComponent.h"
 
+struct TextureLinker {
+	TextureLinker(IRenderPassBase* pass) :mRenderPass(pass) {};
+	QRhiTexture* getInputTexture(int slot) const;
+	void setOutputTexture(int slot, const QByteArray& name, QRhiTexture* texture) const;
+private:
+	IRenderPassBase* mRenderPass = nullptr;
+};
+
+struct InputTextureLinkInfo {
+	QString passName;
+	int passSlot;
+	QRhiTexture* cache = nullptr;
+};
+
 class IRenderPassBase: public QObject{
 	friend class QFrameGraph;
-	struct InputTextureLinker {
-		QString passName;
-		int passSlot;
-		QRhiTexture* result = nullptr;
-	};
+	friend class TextureLinker;
 public:
 	virtual void setRenderer(IRenderer* inRenderer);
 
@@ -19,7 +29,7 @@ public:
 
 	virtual void compile() = 0;
 
-	virtual void resize(const QSize& size) {}
+	virtual void resizeAndLink(const QSize& size, const TextureLinker& linker) {}
 
 	virtual void render(QRhiCommandBuffer* cmdBuffer) = 0;
 
@@ -27,20 +37,15 @@ public:
 
 	const QHash<int, QRhiTexture*>& getOutputTextures();
 
-	void registerOutputTexture(int slot, const QByteArray& name, QRhiTexture* texture);
-
 	IRenderPassBase* setupInputTexture(int inInputSlot, const QString& inPassName, int inPassSlot);
 
-	QRhiTexture* getInputTexture(int slot = 0);
-
-	QStringList getInputRenderPassNames();
+	QStringList getDependentRenderPassNames();
 
 	void cleanupInputLinkerCache();
-
 protected:
 	IRenderer* mRenderer = nullptr;
 	QSharedPointer<QRhiEx> mRhi;
-	QHash<int, InputTextureLinker> mInputTextures;
+	QHash<int, InputTextureLinkInfo> mInputTextureLinks;
 	QHash<int, QRhiTexture*> mOutputTextures;
 };
 
@@ -48,7 +53,9 @@ class ISceneRenderPass :public IRenderPassBase {
 	Q_OBJECT
 public:
 	virtual int getSampleCount() = 0;
-	virtual int getRenderTargetCount() = 0;
+	virtual QList<QPair<QRhiTexture::Format, QString>> getRenderTargetSlots() {
+		return { {QRhiTexture::RGBA8,"BaseColor"} };
+	};
 	virtual QRhiRenderPassDescriptor* getRenderPassDescriptor() = 0;
 	virtual QRhiRenderTarget* getRenderTarget() = 0;
 	void setRenderer(IRenderer* inRenderer) override;

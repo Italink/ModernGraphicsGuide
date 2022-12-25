@@ -5,6 +5,7 @@
 #include "RHI/QRhiEx.h"
 #include "Utils/QCamera.h"
 
+
 class IRenderer: public QObject {
 	Q_OBJECT
 	Q_PROPERTY(QCamera* Camera READ getCamera WRITE setCamera)
@@ -18,11 +19,15 @@ public:
 
 	void setCamera(QCamera* inCamera);
 	void setFrameGraph(QSharedPointer<QFrameGraph> inFrameGraph);
+	void setCurrentObject(QObject* val);
 
 	QSize getFrameSize() const { return mFrameSize; }
 	QCamera* getCamera() const { return mCamera; }
 	IRenderPassBase* getRenderPassByName(const QString& inName);
 	QSharedPointer<QRhiEx> getRhi() { return mRhi; }
+	QObject* getCurrentObject() const { return mCurrentObject; }
+Q_SIGNALS:
+	void asCurrentObjectChanged(QObject*);
 protected:
 	void complie();
 	virtual void render();
@@ -32,6 +37,7 @@ protected:
 	QCamera* mCamera;
 	QSize mFrameSize;
 	bool bRequestCompile = false;
+	QObject* mCurrentObject = nullptr;
 };
 
 #endif // IRenderer_h__

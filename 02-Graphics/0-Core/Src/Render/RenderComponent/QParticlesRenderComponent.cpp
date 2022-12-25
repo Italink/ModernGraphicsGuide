@@ -126,7 +126,7 @@ void main(){
 )");
 	mPipeline.reset(mRhi->newGraphicsPipeline());
 	mPipeline->setVertexInputLayout(inputLayout);
-	QVector<QRhiGraphicsPipeline::TargetBlend> targetBlends(sceneRenderPass()->getRenderTargetCount());
+	QVector<QRhiGraphicsPipeline::TargetBlend> targetBlends(sceneRenderPass()->getRenderTargetSlots().size());
 	mPipeline->setTargetBlends(targetBlends.begin(), targetBlends.end());
 	mPipeline->setTopology(QRhiGraphicsPipeline::Topology::TriangleStrip);
 	mPipeline->setDepthOp(QRhiGraphicsPipeline::LessOrEqual);

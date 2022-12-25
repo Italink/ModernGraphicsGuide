@@ -52,7 +52,7 @@ QImage QSkyboxRenderComponent::getSkyBoxImage() const {
 
 QSkyboxRenderComponent::QSkyboxRenderComponent()
 {
-	Scaling = QVector3D(2000, 2000, 2000);
+	setScale3D(QVector3D(2000, 2000, 2000));
 }
 
 QSkyboxRenderComponent* QSkyboxRenderComponent::setupSkyBoxImage(QImage inImage) {
@@ -103,11 +103,11 @@ void QSkyboxRenderComponent::onRebuildResource() {
 
 void QSkyboxRenderComponent::onRebuildPipeline() {
 	mPipeline.reset(mRhi->newGraphicsPipeline());
-	QVector<QRhiGraphicsPipeline::TargetBlend> blendStates(sceneRenderPass()->getRenderTargetCount());
+	QVector<QRhiGraphicsPipeline::TargetBlend> blendStates(sceneRenderPass()->getRenderTargetSlots().size());
 	mPipeline->setTargetBlends(blendStates.begin(), blendStates.end());
 	mPipeline->setTopology(QRhiGraphicsPipeline::Triangles);
-	mPipeline->setDepthTest(true);
-	mPipeline->setDepthWrite(true);
+	mPipeline->setDepthTest(false);
+	mPipeline->setDepthWrite(false);
 	mPipeline->setSampleCount(sceneRenderPass()->getSampleCount());
 
 	QVector<QRhiVertexInputBinding> inputBindings;

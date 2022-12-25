@@ -43,7 +43,7 @@ protected:
 	struct UniformBlock {
 		QGenericMatrix<4, 4, float> MV;
 		QGenericMatrix<4, 4, float> P;
-		QColor4D Color;
+		QColor4D Color = QColor4D(0.2f,1.0f,1.8f);
 	}mUniform;
 	bool bFacingCamera = true;
 };
