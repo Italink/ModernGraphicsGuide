@@ -1,6 +1,7 @@
 site_name: Modern Graphics Engine Guide
 docs_dir: Docs
-
+repo_url: https://github.com/Italink/ModernGraphicsEngineGuide
+repo_name: Github
 nav:
     - '开篇' : 'README.md'
     - C++:
@@ -17,6 +18,8 @@ nav:
     - '现代图形API':
         - '窗口和部件':  "02-Graphics/0.WindowAndWidget.md"
 theme:
+    icon:
+        repo: fontawesome/brands/github
     language: zh
     name: material
     features:
@@ -29,6 +32,7 @@ theme:
         - navigation.footer
         - navigation.indexes
         - navigation.sections
+        - navigation.instant
         - navigation.tabs
         - navigation.top
         - navigation.tracking
@@ -40,23 +44,14 @@ palette:
     - scheme: default
       primary: indigo
       accent: indigo
-      toggle:
-        icon: material/brightness-7
-        name: Switch to dark mode
     - scheme: slate
       primary: indigo
       accent: indigo
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
-font:
-    text: Roboto
-    code: Roboto Mono
 plugins:
     - search:
         lang: 
             - en
-            - zn
+            - zh
         separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
 markdown_extensions:
     - abbr
@@ -90,5 +85,25 @@ markdown_extensions:
     - pymdownx.tasklist:
         custom_checkbox: true
     - pymdownx.tilde
+extra:
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+    feedback:
+      title: 这篇文章对你有用吗？
+      ratings:
+        - icon: material/thumb-up-outline
+          name: 这是一篇有用的文章
+          data: 1
+          note: >-
+            感谢你的认可0.0
+        - icon: material/thumb-down-outline
+          name: 这篇文章中有问题
+          data: 0
+          note: >- 
+            感谢你的反馈
+            请在<a href="https://github.com/Italink/ModernGraphicsEngineGuide/issues/new" target="_blank" rel="noopener">Github Issue</a>上简述问题
+            博主将尽快修复
 extra_css:
   - Stylesheet/mkdocs_extra.css
+
