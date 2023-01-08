@@ -66,7 +66,7 @@ void RunQtShaderTool() {
 int main(int argc, char **argv)
 {
 	QApplication app(argc, argv);
-	QDir::setCurrent(PROJECT_PATH);
+	QDir::setCurrent(RESOURCE_DIR);
 	RunQtShaderTool();
     return app.exec();
 }

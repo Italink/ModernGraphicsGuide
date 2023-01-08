@@ -29,21 +29,25 @@ QMatrix4x4 ISceneRenderComponent::calculateMatrixModel() {
 	return mTransform;
 }
 
-void ISceneRenderComponent::setTranslate(QVector3D translate) {
+ISceneRenderComponent* ISceneRenderComponent::setTranslate(QVector3D translate) {
 	MathUtils::setMatTranslate(mTransform, translate);
+	return this;
 }
 
-void ISceneRenderComponent::setRotation(QVector3D rotation) {
+ISceneRenderComponent* ISceneRenderComponent::setRotation(QVector3D rotation) {
 	MathUtils::setMatRotation(mTransform, rotation);
+	return this;
 }
 
-void ISceneRenderComponent::setScale3D(QVector3D scale3D) {
+ISceneRenderComponent* ISceneRenderComponent::setScale3D(QVector3D scale3D) {
 	MathUtils::setMatScale3D(mTransform, scale3D);
+	return this;
 }
 
-void ISceneRenderComponent::setTransform(QMatrix4x4 transform) {
+ISceneRenderComponent* ISceneRenderComponent::setTransform(QMatrix4x4 transform) {
 	mTransform = transform;
 	QPropertyHandler::TryFlushProperty(this, "Transform");
+	return this;
 }
 
 QVector3D ISceneRenderComponent::getTranslate() {

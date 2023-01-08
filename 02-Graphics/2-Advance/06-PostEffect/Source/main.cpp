@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 			->setupInputTexture(QBloomMerageRenderPass::InSlot::Blur, "BloomBlur", QBlurRenderPass::OutSlot::BlurResult)
 		)
 		->addPass("TextureOutput", (new QTextureOutputRenderPass)
-			->setupInputTexture(QTextureOutputRenderPass::InSlot::BaseColor, "BloomMerage", QBloomMerageRenderPass::OutSlot::BloomMerageResult)
+			->addTexture("BloomMerage", QBloomMerageRenderPass::OutSlot::BloomMerageResult)
 		)
 		->end()
 	);

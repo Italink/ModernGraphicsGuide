@@ -13,10 +13,10 @@ public:
 	QMatrix4x4 getMatrixClipWithCorr();
 	QMatrix4x4 calculateMatrixModel();
 
-	void setTranslate(QVector3D translate);
-	void setRotation(QVector3D rotation);
-	void setScale3D(QVector3D scale3D);
-	void setTransform(QMatrix4x4 transform);
+	ISceneRenderComponent* setTranslate(QVector3D translate);
+	ISceneRenderComponent* setRotation(QVector3D rotation);
+	ISceneRenderComponent* setScale3D(QVector3D scale3D);
+	ISceneRenderComponent* setTransform(QMatrix4x4 transform);
 
 	QVector3D getTranslate();
 	QVector3D getRotation();

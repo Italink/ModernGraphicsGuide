@@ -8,7 +8,7 @@ function(add_example EXAMPLE_PATH)
     add_executable(${EXAMPLE_NAME} 
         ${PROJECT_SOURCE}
     )
-    target_compile_definitions(${EXAMPLE_NAME} PRIVATE PROJECT_PATH="${EXAMPLE_PATH}")
+    target_compile_definitions(${EXAMPLE_NAME} PRIVATE RESOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/Resource")
     target_link_libraries(${EXAMPLE_NAME} PRIVATE Core)
 endfunction()
 

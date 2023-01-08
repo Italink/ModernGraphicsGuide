@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 		QFrameGraphBuilder::begin()
 		->addPass("Triangle", (new QSceneOutputRenderPass())
 			->addRenderComponent((new QSkyboxRenderComponent())
-				->setupSkyBoxImage(QImage(PROJECT_PATH"/Skybox.jpeg"))
+				->setupSkyBoxImage(QImage(RESOURCE_DIR"/Skybox.jpeg"))
 			)
 		)
 		->end()
