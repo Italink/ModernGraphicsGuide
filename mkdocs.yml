@@ -1,0 +1,93 @@
+site_name: ModernGraphicsGuide
+docs_dir: Docs
+
+nav:
+    - '开篇' : 'README.md'
+    - C++:
+        - '计算机发展史': '00-C++/1.计算机发展史.md'
+        - 'C++基础路线': '00-C++/2.C++基础路线.md'
+        - '现代开发工作流': '00-C++/3.现代开发工作流.md'
+        - '库': '00-C++/4.库.md'
+        - '宏、模板、反射': '00-C++/5.宏、模板、反射.md'
+        - '内存管理、跨平台': '00-C++/6.内存管理、跨平台.md'
+    - GUI:
+        - "窗口基础" : "01-GUI/0.窗口基础.md"
+        - "Qt" : "01-GUI/1.Qt.md"
+        - "ImGUI" : "01-GUI/2.ImGUI.md"
+    - '现代图形API':
+        - '窗口和部件':  "02-Graphics/0.WindowAndWidget.md"
+theme:
+    language: zh
+    name: material
+    features:
+        - content.action.edit
+        - content.action.view
+        - content.code.annotate
+        - content.code.copy
+        - content.tooltips
+        - navigation.expand
+        - navigation.footer
+        - navigation.indexes
+        - navigation.sections
+        - navigation.tabs
+        - navigation.top
+        - navigation.tracking
+        - search.highlight
+        - search.share
+        - search.suggest
+        - toc.follow
+palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+font:
+    text: Roboto
+    code: Roboto Mono
+plugins:
+    - search:
+        lang: 
+            - en
+            - zn
+        separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+markdown_extensions:
+    - abbr
+    - admonition
+    - attr_list
+    - def_list
+    - footnotes
+    - md_in_html
+    - toc:
+        permalink: true
+    - pymdownx.arithmatex:
+        generic: true
+    - pymdownx.betterem:
+        smart_enable: all
+    - pymdownx.caret
+    - pymdownx.details
+    - pymdownx.highlight:
+        anchor_linenums: true
+    - pymdownx.inlinehilite
+    - pymdownx.snippets
+    - pymdownx.superfences
+    - pymdownx.inlinehilite
+    - pymdownx.keys
+    - pymdownx.magiclink:
+        repo_url_shorthand: true
+        user: squidfunk
+        repo: mkdocs-material
+    - pymdownx.mark
+    - pymdownx.smartsymbols
+    - pymdownx.tabbed:
+        alternate_style: true
+    - pymdownx.tasklist:
+        custom_checkbox: true
+    - pymdownx.tilde
