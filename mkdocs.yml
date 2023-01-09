@@ -96,12 +96,13 @@ extra:
           name: 这是一篇有用的文章
           data: 1
           note: >-
-            感谢你的认可0.0
+            感谢您的反馈
+            如有疑问，请到此处<a href="https://github.com/Italink/ModernGraphicsEngineGuide/issues/new" target="_blank" rel="noopener">Github Issue</a>
         - icon: material/thumb-down-outline
           name: 这篇文章中有问题
           data: 0
           note: >- 
-            感谢你的反馈
+            感谢您的反馈
             请在<a href="https://github.com/Italink/ModernGraphicsEngineGuide/issues/new" target="_blank" rel="noopener">Github Issue</a>上简述问题
             博主将尽快修复
 extra_css:
