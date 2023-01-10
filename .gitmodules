@@ -1,6 +1,6 @@
-[submodule "02-Graphics/0-Core/3rdParty/QDetailWidget"]
-	path = 02-Graphics/0-Core/3rdParty/QDetailWidget
+[submodule "Source/0-Core/3rdParty/QDetailWidget"]
+	path = Source/0-Core/3rdParty/QDetailWidget
 	url = https://github.com/Italink/QDetailWidget.git
-[submodule "02-Graphics/0-Core/3rdParty/assimp"]
-	path = 02-Graphics/0-Core/3rdParty/assimp
+[submodule "Source/0-Core/3rdParty/assimp"]
+	path = Source/0-Core/3rdParty/assimp
 	url = https://github.com/assimp/assimp.git
